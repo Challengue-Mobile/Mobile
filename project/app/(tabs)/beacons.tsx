@@ -1,102 +1,112 @@
-import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, Switch } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Plus, Bluetooth, RefreshCw } from 'lucide-react-native';
-import Themes from '@/constants/Themes';
-import { BeaconCard } from '@/components/BeaconCard';
-import { useMockData } from '@/hooks/useMockData';
-import { BeaconFormModal } from '@/components/BeaconFormModal';
-import { useBeacons } from '@/hooks/useBeacons';
-import { Beacon } from '@/types';
+"use client"
+
+import { useState, useEffect } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Switch } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+import { Plus, Bluetooth, RefreshCw } from "lucide-react-native"
+import { BeaconCard } from "@/components/BeaconCard"
+import { useMockData } from "@/hooks/useMockData"
+import { BeaconFormModal } from "@/components/BeaconFormModal"
+import { useBeacons } from "@/hooks/useBeacons"
+import type { Beacon } from "@/types"
+import { useTheme } from "@/contexts/ThemeContext"
+import { useLocalization } from "@/contexts/LocalizationContext"
+import { useScan } from "@/contexts/ScanContext"
 
 export default function BeaconsScreen() {
-  const { beacons: mockBeacons } = useMockData();
-  const { beacons, saveBeacon, deleteBeacon } = useBeacons();
-  
-  const [isModalVisible, setIsModalVisible] = useState(false);
-  const [editingBeacon, setEditingBeacon] = useState<Beacon | null>(null);
-  const [showActive, setShowActive] = useState(true);
-  const [filteredBeacons, setFilteredBeacons] = useState<Beacon[]>([]);
-  const [scanning, setScanning] = useState(false);
+  const { beacons: mockBeacons } = useMockData()
+  const { beacons, saveBeacon, deleteBeacon } = useBeacons()
+  const { theme } = useTheme()
+  const { t } = useLocalization()
+  const { isScanning, startScan } = useScan()
+
+  const [isModalVisible, setIsModalVisible] = useState(false)
+  const [editingBeacon, setEditingBeacon] = useState<Beacon | null>(null)
+  const [showActive, setShowActive] = useState(true)
+  const [filteredBeacons, setFilteredBeacons] = useState<Beacon[]>([])
 
   useEffect(() => {
     // Initialize with data if no beacons are saved yet
     if (beacons.length === 0) {
-      mockBeacons.forEach(beacon => {
-        saveBeacon(beacon);
-      });
+      mockBeacons.forEach((beacon) => {
+        saveBeacon(beacon)
+      })
     }
-  }, []);
+  }, [])
 
   useEffect(() => {
     if (showActive) {
-      setFilteredBeacons(beacons);
+      setFilteredBeacons(beacons)
     } else {
       // Only show active beacons
-      setFilteredBeacons(beacons.filter(beacon => beacon.status === 'active'));
+      setFilteredBeacons(beacons.filter((beacon) => beacon.status === "active"))
     }
-  }, [showActive, beacons]);
+  }, [showActive, beacons])
 
   const handleAddBeacon = () => {
-    setEditingBeacon(null);
-    setIsModalVisible(true);
-  };
+    setEditingBeacon(null)
+    setIsModalVisible(true)
+  }
 
   const handleEditBeacon = (beacon: Beacon) => {
-    setEditingBeacon(beacon);
-    setIsModalVisible(true);
-  };
+    setEditingBeacon(beacon)
+    setIsModalVisible(true)
+  }
 
   const handleSaveBeacon = (beacon: Beacon) => {
-    saveBeacon(beacon);
-    setIsModalVisible(false);
-  };
+    saveBeacon(beacon)
+    setIsModalVisible(false)
+  }
 
   const handleDeleteBeacon = (id: string) => {
-    deleteBeacon(id);
-  };
-
-  const startScan = () => {
-    setScanning(true);
-    
-    // Simulate scanning process
-    setTimeout(() => {
-      setScanning(false);
-    }, 3000);
-  };
+    deleteBeacon(id)
+  }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.title}>Gerenciar Beacons</Text>
-        <TouchableOpacity 
-          style={[styles.addButton, scanning && styles.scanningButton]} 
-          onPress={scanning ? undefined : handleAddBeacon}
-          disabled={scanning}
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.gray[50] }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.white, borderBottomColor: theme.colors.gray[200] }]}>
+        <Text style={[styles.title, { color: theme.colors.gray[900] }]}>{t("beacons.title")}</Text>
+        <TouchableOpacity
+          style={[
+            styles.addButton,
+            { backgroundColor: theme.colors.primary[500] },
+            isScanning && [styles.scanningButton, { backgroundColor: theme.colors.gray[400] }],
+          ]}
+          onPress={isScanning ? undefined : handleAddBeacon}
+          disabled={isScanning}
         >
-          <Plus size={20} color={Themes.colors.white} />
+          <Plus size={20} color={theme.colors.white} />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.filterContainer}>
+      <View
+        style={[
+          styles.filterContainer,
+          { backgroundColor: theme.colors.white, borderBottomColor: theme.colors.gray[200] },
+        ]}
+      >
         <View style={styles.filterOption}>
-          <Text style={styles.filterLabel}>Mostrar todos os beacons</Text>
+          <Text style={[styles.filterLabel, { color: theme.colors.gray[800] }]}>{t("beacons.showAll")}</Text>
           <Switch
             value={showActive}
             onValueChange={setShowActive}
-            trackColor={{ false: Themes.colors.gray[300], true: Themes.colors.primary[300] }}
-            thumbColor={showActive ? Themes.colors.primary[500] : Themes.colors.gray[100]}
+            trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[300] }}
+            thumbColor={showActive ? theme.colors.primary[500] : theme.colors.gray[100]}
           />
         </View>
 
-        <TouchableOpacity 
-          style={[styles.scanButton, scanning && styles.scanningButton]} 
+        <TouchableOpacity
+          style={[
+            styles.scanButton,
+            { backgroundColor: theme.colors.secondary[500] },
+            isScanning && [styles.scanningButton, { backgroundColor: theme.colors.gray[400] }],
+          ]}
           onPress={startScan}
-          disabled={scanning}
+          disabled={isScanning}
         >
-          <RefreshCw size={16} color={Themes.colors.white} />
-          <Text style={styles.scanButtonText}>
-            {scanning ? 'Escaneando...' : 'Escanear'}
+          <RefreshCw size={16} color={theme.colors.white} />
+          <Text style={[styles.scanButtonText, { color: theme.colors.white }]}>
+            {isScanning ? t("beacons.scanning") : t("beacons.scan")}
           </Text>
         </TouchableOpacity>
       </View>
@@ -105,8 +115,8 @@ export default function BeaconsScreen() {
         data={filteredBeacons}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <BeaconCard 
-            beacon={item} 
+          <BeaconCard
+            beacon={item}
             onEdit={() => handleEditBeacon(item)}
             onDelete={() => handleDeleteBeacon(item.id)}
           />
@@ -114,10 +124,13 @@ export default function BeaconsScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Bluetooth size={40} color={Themes.colors.gray[400]} />
-            <Text style={styles.emptyText}>Nenhum beacon encontrado</Text>
-            <TouchableOpacity style={styles.emptyButton} onPress={handleAddBeacon}>
-              <Text style={styles.emptyButtonText}>Adicionar beacon</Text>
+            <Bluetooth size={40} color={theme.colors.gray[400]} />
+            <Text style={[styles.emptyText, { color: theme.colors.gray[600] }]}>{t("beacons.empty")}</Text>
+            <TouchableOpacity
+              style={[styles.emptyButton, { backgroundColor: theme.colors.primary[500] }]}
+              onPress={handleAddBeacon}
+            >
+              <Text style={[styles.emptyButtonText, { color: theme.colors.white }]}>{t("beacons.add")}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -130,67 +143,57 @@ export default function BeaconsScreen() {
         onSave={handleSaveBeacon}
       />
     </SafeAreaView>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Themes.colors.gray[50],
   },
   header: {
     padding: 16,
-    backgroundColor: Themes.colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: Themes.colors.gray[200],
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   title: {
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
     fontSize: 20,
-    color: Themes.colors.gray[900],
   },
   addButton: {
-    backgroundColor: Themes.colors.primary[500],
     padding: 8,
     borderRadius: 8,
   },
   scanningButton: {
-    backgroundColor: Themes.colors.gray[400],
+    backgroundColor: "#9CA3AF",
   },
   filterContainer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: Themes.colors.white,
+    justifyContent: "space-between",
+    alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: Themes.colors.gray[200],
   },
   filterOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   filterLabel: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 14,
-    color: Themes.colors.gray[800],
     marginRight: 8,
   },
   scanButton: {
-    backgroundColor: Themes.colors.secondary[500],
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 8,
   },
   scanButtonText: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 12,
-    color: Themes.colors.white,
     marginLeft: 4,
   },
   listContent: {
@@ -198,24 +201,21 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     padding: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   emptyText: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 16,
-    color: Themes.colors.gray[600],
     marginVertical: 16,
   },
   emptyButton: {
-    backgroundColor: Themes.colors.primary[500],
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },
   emptyButtonText: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 14,
-    color: Themes.colors.white,
   },
-});
+})

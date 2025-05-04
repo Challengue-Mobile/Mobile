@@ -1,217 +1,276 @@
-import { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Modal, 
-  TouchableOpacity, 
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
   TextInput,
   ScrollView,
   Keyboard,
-  TouchableWithoutFeedback
-} from 'react-native';
-import { X } from 'lucide-react-native';
-import { Motorcycle } from '@/types';
-import Themes from '@/constants/Themes';
-import { useBeacons } from '@/hooks/useBeacons';
+  TouchableWithoutFeedback,
+} from "react-native"
+import { X } from "lucide-react-native"
+import type { Motorcycle } from "@/types"
+import { useBeacons } from "@/hooks/useBeacons"
+import { useTheme } from "@/contexts/ThemeContext"
+import { useLocalization } from "@/contexts/LocalizationContext"
 
 interface MotoFormModalProps {
-  visible: boolean;
-  motorcycle: Motorcycle | null;
-  onClose: () => void;
-  onSave: (motorcycle: Motorcycle) => void;
+  visible: boolean
+  motorcycle: Motorcycle | null
+  onClose: () => void
+  onSave: (motorcycle: Motorcycle) => void
 }
 
 export function MotoFormModal({ visible, motorcycle, onClose, onSave }: MotoFormModalProps) {
-  const [model, setModel] = useState('');
-  const [licensePlate, setLicensePlate] = useState('');
-  const [year, setYear] = useState('');
-  const [color, setColor] = useState('');
-  const [status, setStatus] = useState('in-yard');
-  const [beaconId, setBeaconId] = useState('');
-  
-  const { beacons } = useBeacons();
-  const availableBeacons = beacons.filter(b => !b.motoId || (motorcycle && b.motoId === motorcycle.id));
+  const { theme } = useTheme()
+  const { t } = useLocalization()
+  const { beacons } = useBeacons()
+
+  const [model, setModel] = useState("")
+  const [licensePlate, setLicensePlate] = useState("")
+  const [year, setYear] = useState("")
+  const [color, setColor] = useState("")
+  const [status, setStatus] = useState("in-yard")
+  const [beaconId, setBeaconId] = useState("")
+
+  const availableBeacons = beacons.filter((b) => !b.motoId || (motorcycle && b.motoId === motorcycle.id))
 
   useEffect(() => {
     if (motorcycle) {
-      setModel(motorcycle.model);
-      setLicensePlate(motorcycle.licensePlate);
-      setYear(motorcycle.year.toString());
-      setColor(motorcycle.color);
-      setStatus(motorcycle.status);
-      setBeaconId(motorcycle.beaconId || '');
+      setModel(motorcycle.model)
+      setLicensePlate(motorcycle.licensePlate)
+      setYear(motorcycle.year.toString())
+      setColor(motorcycle.color)
+      setStatus(motorcycle.status)
+      setBeaconId(motorcycle.beaconId || "")
     } else {
-      setModel('');
-      setLicensePlate('');
-      setYear('');
-      setColor('');
-      setStatus('in-yard');
-      setBeaconId('');
+      setModel("")
+      setLicensePlate("")
+      setYear("")
+      setColor("")
+      setStatus("in-yard")
+      setBeaconId("")
     }
-  }, [motorcycle, visible]);
+  }, [motorcycle, visible])
 
   const handleSave = () => {
     if (!model || !licensePlate) {
-      return; // Could add validation feedback here
+      return // Could add validation feedback here
     }
 
+    let validatedStatus: "in-yard" | "out" | "maintenance" = "in-yard"; // valor padrão
+    if (status === "out" || status === "maintenance") {
+      validatedStatus = status;
+    }
+    
     const newMotorcycle: Motorcycle = {
       id: motorcycle?.id || `moto-${Date.now().toString()}`,
       model,
       licensePlate,
-      year: parseInt(year) || new Date().getFullYear(),
+      year: Number.parseInt(year) || new Date().getFullYear(),
       color,
-      status,
+      status: validatedStatus,
       beaconId: beaconId || null,
-    };
+    }
+    
 
-    onSave(newMotorcycle);
-  };
+    onSave(newMotorcycle)
+  }
 
   const handleDismiss = () => {
-    Keyboard.dismiss();
-    onClose();
-  };
+    Keyboard.dismiss()
+    onClose()
+  }
 
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={visible}
-      onRequestClose={handleDismiss}
-    >
+    <Modal animationType="slide" transparent={true} visible={visible} onRequestClose={handleDismiss}>
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <View style={styles.overlay}>
-          <View style={styles.container}>
-            <View style={styles.header}>
-              <Text style={styles.title}>
-                {motorcycle ? 'Editar Moto' : 'Adicionar Moto'}
+          <View style={[styles.container, { backgroundColor: theme.colors.white }]}>
+            <View style={[styles.header, { borderBottomColor: theme.colors.gray[200] }]}>
+              <Text style={[styles.title, { color: theme.colors.gray[900] }]}>
+                {motorcycle ? t("motorcycles.edit") : t("motorcycles.new")}
               </Text>
               <TouchableOpacity onPress={handleDismiss}>
-                <X size={24} color={Themes.colors.gray[600]} />
+                <X size={24} color={theme.colors.gray[600]} />
               </TouchableOpacity>
             </View>
 
             <ScrollView style={styles.content}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Modelo</Text>
+                <Text style={[styles.label, { color: theme.colors.gray[800] }]}>{t("motorcycles.model")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.colors.gray[100],
+                      borderColor: theme.colors.gray[300],
+                      color: theme.colors.gray[900],
+                    },
+                  ]}
                   value={model}
                   onChangeText={setModel}
                   placeholder="Ex: Honda CG 160"
+                  placeholderTextColor={theme.colors.gray[400]}
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Placa</Text>
+                <Text style={[styles.label, { color: theme.colors.gray[800] }]}>{t("motorcycles.licensePlate")}</Text>
                 <TextInput
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    {
+                      backgroundColor: theme.colors.gray[100],
+                      borderColor: theme.colors.gray[300],
+                      color: theme.colors.gray[900],
+                    },
+                  ]}
                   value={licensePlate}
                   onChangeText={setLicensePlate}
                   placeholder="Ex: ABC-1234"
+                  placeholderTextColor={theme.colors.gray[400]}
                   autoCapitalize="characters"
                 />
               </View>
 
               <View style={styles.row}>
                 <View style={[styles.formGroup, styles.halfWidth]}>
-                  <Text style={styles.label}>Ano</Text>
+                  <Text style={[styles.label, { color: theme.colors.gray[800] }]}>{t("motorcycles.year")}</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.colors.gray[100],
+                        borderColor: theme.colors.gray[300],
+                        color: theme.colors.gray[900],
+                      },
+                    ]}
                     value={year}
                     onChangeText={setYear}
                     placeholder="Ex: 2023"
+                    placeholderTextColor={theme.colors.gray[400]}
                     keyboardType="numeric"
                   />
                 </View>
 
                 <View style={[styles.formGroup, styles.halfWidth]}>
-                  <Text style={styles.label}>Cor</Text>
+                  <Text style={[styles.label, { color: theme.colors.gray[800] }]}>{t("motorcycles.color")}</Text>
                   <TextInput
-                    style={styles.input}
+                    style={[
+                      styles.input,
+                      {
+                        backgroundColor: theme.colors.gray[100],
+                        borderColor: theme.colors.gray[300],
+                        color: theme.colors.gray[900],
+                      },
+                    ]}
                     value={color}
                     onChangeText={setColor}
                     placeholder="Ex: Vermelha"
+                    placeholderTextColor={theme.colors.gray[400]}
                   />
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Status</Text>
+                <Text style={[styles.label, { color: theme.colors.gray[800] }]}>{t("motorcycles.status")}</Text>
                 <View style={styles.statusOptions}>
                   <TouchableOpacity
                     style={[
                       styles.statusOption,
-                      status === 'in-yard' && styles.statusOptionSelected,
+                      { borderColor: theme.colors.gray[300] },
+                      status === "in-yard" && [
+                        styles.statusOptionSelected,
+                        { borderColor: theme.colors.primary[500], backgroundColor: theme.colors.primary[50] },
+                      ],
                     ]}
-                    onPress={() => setStatus('in-yard')}
+                    onPress={() => setStatus("in-yard")}
                   >
                     <Text
                       style={[
                         styles.statusText,
-                        status === 'in-yard' && styles.statusTextSelected,
+                        { color: theme.colors.gray[600] },
+                        status === "in-yard" && [styles.statusTextSelected, { color: theme.colors.primary[700] }],
                       ]}
                     >
-                      No Pátio
+                      {t("motorcycles.status.inYard")}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
                       styles.statusOption,
-                      status === 'out' && styles.statusOptionSelected,
+                      { borderColor: theme.colors.gray[300] },
+                      status === "out" && [
+                        styles.statusOptionSelected,
+                        { borderColor: theme.colors.primary[500], backgroundColor: theme.colors.primary[50] },
+                      ],
                     ]}
-                    onPress={() => setStatus('out')}
+                    onPress={() => setStatus("out")}
                   >
                     <Text
                       style={[
                         styles.statusText,
-                        status === 'out' && styles.statusTextSelected,
+                        { color: theme.colors.gray[600] },
+                        status === "out" && [styles.statusTextSelected, { color: theme.colors.primary[700] }],
                       ]}
                     >
-                      Fora
+                      {t("motorcycles.status.out")}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={[
                       styles.statusOption,
-                      status === 'maintenance' && styles.statusOptionSelected,
+                      { borderColor: theme.colors.gray[300] },
+                      status === "maintenance" && [
+                        styles.statusOptionSelected,
+                        { borderColor: theme.colors.primary[500], backgroundColor: theme.colors.primary[50] },
+                      ],
                     ]}
-                    onPress={() => setStatus('maintenance')}
+                    onPress={() => setStatus("maintenance")}
                   >
                     <Text
                       style={[
                         styles.statusText,
-                        status === 'maintenance' && styles.statusTextSelected,
+                        { color: theme.colors.gray[600] },
+                        status === "maintenance" && [styles.statusTextSelected, { color: theme.colors.primary[700] }],
                       ]}
                     >
-                      Manutenção
+                      {t("motorcycles.status.maintenance")}
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Beacon</Text>
+                <Text style={[styles.label, { color: theme.colors.gray[800] }]}>{t("motorcycles.beacon")}</Text>
                 {availableBeacons.length > 0 ? (
                   <View style={styles.beaconOptions}>
                     <TouchableOpacity
                       style={[
                         styles.beaconOption,
-                        beaconId === '' && styles.beaconOptionSelected,
+                        { borderColor: theme.colors.gray[300] },
+                        beaconId === "" && [
+                          styles.beaconOptionSelected,
+                          { borderColor: theme.colors.primary[500], backgroundColor: theme.colors.primary[50] },
+                        ],
                       ]}
-                      onPress={() => setBeaconId('')}
+                      onPress={() => setBeaconId("")}
                     >
                       <Text
                         style={[
                           styles.beaconText,
-                          beaconId === '' && styles.beaconTextSelected,
+                          { color: theme.colors.gray[700] },
+                          beaconId === "" && [styles.beaconTextSelected, { color: theme.colors.primary[700] }],
                         ]}
                       >
-                        Nenhum
+                        {t("beacons.none")}
                       </Text>
                     </TouchableOpacity>
 
@@ -220,14 +279,19 @@ export function MotoFormModal({ visible, motorcycle, onClose, onSave }: MotoForm
                         key={beacon.id}
                         style={[
                           styles.beaconOption,
-                          beacon.id === beaconId && styles.beaconOptionSelected,
+                          { borderColor: theme.colors.gray[300] },
+                          beacon.id === beaconId && [
+                            styles.beaconOptionSelected,
+                            { borderColor: theme.colors.primary[500], backgroundColor: theme.colors.primary[50] },
+                          ],
                         ]}
                         onPress={() => setBeaconId(beacon.id)}
                       >
                         <Text
                           style={[
                             styles.beaconText,
-                            beacon.id === beaconId && styles.beaconTextSelected,
+                            { color: theme.colors.gray[700] },
+                            beacon.id === beaconId && [styles.beaconTextSelected, { color: theme.colors.primary[700] }],
                           ]}
                         >
                           {beacon.id}
@@ -236,176 +300,167 @@ export function MotoFormModal({ visible, motorcycle, onClose, onSave }: MotoForm
                     ))}
                   </View>
                 ) : (
-                  <Text style={styles.noBeaconsText}>
-                    Não há beacons disponíveis
+                  <Text
+                    style={[
+                      styles.noBeaconsText,
+                      { color: theme.colors.gray[600], backgroundColor: theme.colors.gray[100] },
+                    ]}
+                  >
+                    {t("motorcycles.noBeaconsAvailable")}
                   </Text>
                 )}
               </View>
             </ScrollView>
 
-            <View style={styles.footer}>
-              <TouchableOpacity style={styles.cancelButton} onPress={handleDismiss}>
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
+            <View style={[styles.footer, { borderTopColor: theme.colors.gray[200] }]}>
+              <TouchableOpacity
+                style={[styles.cancelButton, { borderColor: theme.colors.gray[300] }]}
+                onPress={handleDismiss}
+              >
+                <Text style={[styles.cancelButtonText, { color: theme.colors.gray[700] }]}>{t("common.cancel")}</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Salvar</Text>
+              <TouchableOpacity
+                style={[styles.saveButton, { backgroundColor: theme.colors.primary[500] }]}
+                onPress={handleSave}
+              >
+                <Text style={[styles.saveButtonText, { color: theme.colors.white }]}>{t("common.save")}</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </TouchableWithoutFeedback>
     </Modal>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
   container: {
-    backgroundColor: Themes.colors.white,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    maxHeight: '90%',
+    maxHeight: "90%",
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: Themes.colors.gray[200],
   },
   title: {
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
     fontSize: 18,
-    color: Themes.colors.gray[900],
   },
   content: {
     padding: 16,
-    maxHeight: '70%',
+    maxHeight: "70%",
   },
   formGroup: {
     marginBottom: 16,
   },
   row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   halfWidth: {
-    width: '48%',
+    width: "48%",
   },
   label: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 14,
-    color: Themes.colors.gray[800],
     marginBottom: 6,
   },
   input: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 14,
-    backgroundColor: Themes.colors.gray[100],
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: Themes.colors.gray[300],
-    color: Themes.colors.gray[900],
   },
   statusOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   statusOption: {
     flex: 1,
     padding: 10,
-    alignItems: 'center',
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: Themes.colors.gray[300],
     marginHorizontal: 4,
     borderRadius: 8,
   },
   statusOptionSelected: {
-    borderColor: Themes.colors.primary[500],
-    backgroundColor: Themes.colors.primary[50],
+    borderColor: "#4F46E5",
+    backgroundColor: "#EEF2FF",
   },
   statusText: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 12,
-    color: Themes.colors.gray[600],
   },
   statusTextSelected: {
-    fontFamily: 'Poppins-Medium',
-    color: Themes.colors.primary[700],
+    fontFamily: "Poppins-Medium",
   },
   beaconOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   beaconOption: {
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderWidth: 1,
-    borderColor: Themes.colors.gray[300],
     borderRadius: 8,
     marginRight: 8,
     marginBottom: 8,
   },
   beaconOptionSelected: {
-    borderColor: Themes.colors.primary[500],
-    backgroundColor: Themes.colors.primary[50],
+    borderColor: "#4F46E5",
+    backgroundColor: "#EEF2FF",
   },
   beaconText: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 12,
-    color: Themes.colors.gray[700],
   },
   beaconTextSelected: {
-    fontFamily: 'Poppins-Medium',
-    color: Themes.colors.primary[700],
+    fontFamily: "Poppins-Medium",
   },
   noBeaconsText: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 14,
-    color: Themes.colors.gray[600],
-    backgroundColor: Themes.colors.gray[100],
     padding: 12,
     borderRadius: 8,
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     borderTopWidth: 1,
-    borderTopColor: Themes.colors.gray[200],
   },
   cancelButton: {
     flex: 1,
     padding: 12,
     borderWidth: 1,
-    borderColor: Themes.colors.gray[300],
     borderRadius: 8,
     marginRight: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelButtonText: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 14,
-    color: Themes.colors.gray[700],
   },
   saveButton: {
     flex: 1,
     padding: 12,
-    backgroundColor: Themes.colors.primary[500],
     borderRadius: 8,
     marginLeft: 8,
-    alignItems: 'center',
+    alignItems: "center",
   },
   saveButtonText: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 14,
-    color: Themes.colors.white,
   },
-});
+})

@@ -1,113 +1,127 @@
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Motorcycle } from '@/types';
-import Themes from '@/constants/Themes';
-import { Trash2, Edit2, Bluetooth } from 'lucide-react-native';
+"use client"
+
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
+import type { Motorcycle } from "@/types"
+import { Trash2, Edit2, Bluetooth } from "lucide-react-native"
+import { useTheme } from "@/contexts/ThemeContext"
+import { useLocalization } from "@/contexts/LocalizationContext"
 
 interface MotoCardProps {
-  motorcycle: Motorcycle;
-  onEdit?: () => void;
-  onDelete?: () => void;
+  motorcycle: Motorcycle
+  onEdit?: () => void
+  onDelete?: () => void
 }
 
 export function MotoCard({ motorcycle, onEdit, onDelete }: MotoCardProps) {
+  const { theme } = useTheme()
+  const { t } = useLocalization()
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'in-yard':
-        return Themes.colors.success[500];
-      case 'out':
-        return Themes.colors.error[500];
-      case 'maintenance':
-        return Themes.colors.warning[500];
+      case "in-yard":
+        return theme.colors.success[500]
+      case "out":
+        return theme.colors.error[500]
+      case "maintenance":
+        return theme.colors.warning[500]
       default:
-        return Themes.colors.gray[500];
+        return theme.colors.gray[500]
     }
-  };
+  }
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'in-yard':
-        return 'No Pátio';
-      case 'out':
-        return 'Fora';
-      case 'maintenance':
-        return 'Manutenção';
+      case "in-yard":
+        return t("motorcycles.status.inYard")
+      case "out":
+        return t("motorcycles.status.out")
+      case "maintenance":
+        return t("motorcycles.status.maintenance")
       default:
-        return 'Desconhecido';
+        return t("common.unknown")
     }
-  };
+  }
 
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: theme.colors.white,
+          shadowColor: theme.colors.gray[900],
+        },
+      ]}
+    >
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.model}>{motorcycle.model}</Text>
+          <Text style={[styles.model, { color: theme.colors.gray[900] }]}>{motorcycle.model}</Text>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(motorcycle.status) }]}>
-            <Text style={styles.statusText}>{getStatusText(motorcycle.status)}</Text>
+            <Text style={[styles.statusText, { color: theme.colors.white }]}>{getStatusText(motorcycle.status)}</Text>
           </View>
         </View>
-        
+
         <View style={styles.detailsRow}>
           <View style={styles.detail}>
-            <Text style={styles.detailLabel}>Placa:</Text>
-            <Text style={styles.detailValue}>{motorcycle.licensePlate}</Text>
+            <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>
+              {t("motorcycles.licensePlate")}:
+            </Text>
+            <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{motorcycle.licensePlate}</Text>
           </View>
-          
+
           <View style={styles.detail}>
-            <Text style={styles.detailLabel}>Ano:</Text>
-            <Text style={styles.detailValue}>{motorcycle.year}</Text>
+            <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>{t("motorcycles.year")}:</Text>
+            <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{motorcycle.year}</Text>
           </View>
         </View>
-        
+
         <View style={styles.detailsRow}>
           <View style={styles.detail}>
-            <Text style={styles.detailLabel}>Cor:</Text>
-            <Text style={styles.detailValue}>{motorcycle.color}</Text>
+            <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>{t("motorcycles.color")}:</Text>
+            <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{motorcycle.color}</Text>
           </View>
-          
+
           {motorcycle.beaconId ? (
             <View style={styles.beaconDetail}>
-              <Bluetooth size={16} color={Themes.colors.secondary[500]} />
-              <Text style={[styles.detailValue, styles.beaconText]}>
+              <Bluetooth size={16} color={theme.colors.secondary[500]} />
+              <Text style={[styles.detailValue, styles.beaconText, { color: theme.colors.secondary[700] }]}>
                 {motorcycle.beaconId}
               </Text>
             </View>
           ) : (
             <View style={styles.detail}>
-              <Text style={styles.detailLabel}>Beacon:</Text>
-              <Text style={styles.detailValue}>Não vinculado</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>{t("motorcycles.beacon")}:</Text>
+              <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{t("motorcycles.noBeacon")}</Text>
             </View>
           )}
         </View>
       </View>
-      
+
       {(onEdit || onDelete) && (
         <View style={styles.actions}>
           {onEdit && (
             <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
-              <Edit2 size={18} color={Themes.colors.primary[500]} />
+              <Edit2 size={18} color={theme.colors.primary[500]} />
             </TouchableOpacity>
           )}
-          
+
           {onDelete && (
             <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
-              <Trash2 size={18} color={Themes.colors.error[500]} />
+              <Trash2 size={18} color={theme.colors.error[500]} />
             </TouchableOpacity>
           )}
         </View>
       )}
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: Themes.colors.white,
     borderRadius: 8,
     marginBottom: 12,
     padding: 16,
-    flexDirection: 'row',
+    flexDirection: "row",
     elevation: 2,
-    shadowColor: Themes.colors.gray[900],
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
@@ -116,15 +130,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   model: {
-    fontFamily: 'Poppins-SemiBold',
+    fontFamily: "Poppins-SemiBold",
     fontSize: 16,
-    color: Themes.colors.gray[900],
   },
   statusBadge: {
     paddingHorizontal: 8,
@@ -132,45 +145,41 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   statusText: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 10,
-    color: Themes.colors.white,
   },
   detailsRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 4,
   },
   detail: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 8,
   },
   detailLabel: {
-    fontFamily: 'Poppins-Regular',
+    fontFamily: "Poppins-Regular",
     fontSize: 12,
-    color: Themes.colors.gray[600],
     marginRight: 4,
   },
   detailValue: {
-    fontFamily: 'Poppins-Medium',
+    fontFamily: "Poppins-Medium",
     fontSize: 12,
-    color: Themes.colors.gray[800],
   },
   beaconDetail: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   beaconText: {
-    color: Themes.colors.secondary[700],
     marginLeft: 4,
   },
   actions: {
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   actionButton: {
     padding: 8,
     marginBottom: 8,
   },
-});
+})
