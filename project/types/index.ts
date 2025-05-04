@@ -62,3 +62,4 @@ export const statusTranslations = {
     "pt-BR": "Offline",
     "en-US": "Offline",
   }
+}
