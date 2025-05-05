@@ -74,6 +74,82 @@ const translations: TranslationsType = {
     "pt-BR": "Informações dos Beacons",
     "en-US": "Beacon Information",
   },
+  "mapping.searchPlaceholder": {
+    "pt-BR": "Buscar beacons ou motos",
+    "en-US": "Search beacons or motorcycles",
+  },
+  "mapping.allZones": {
+    "pt-BR": "Todas as Zonas",
+    "en-US": "All Zones",
+  },
+  "mapping.zone": {
+    "pt-BR": "Zona",
+    "en-US": "Zone",
+  },
+  "mapping.coordinates": {
+    "pt-BR": "Coordenadas",
+    "en-US": "Coordinates",
+  },
+  "mapping.linkedMoto": {
+    "pt-BR": "Moto Vinculada",
+    "en-US": "Linked Motorcycle",
+  },
+  "mapping.recentActivity": {
+    "pt-BR": "Atividade Recente",
+    "en-US": "Recent Activity",
+  },
+  "mapping.hideInfo": {
+    "pt-BR": "Ocultar Informações",
+    "en-US": "Hide Information",
+  },
+  "mapping.showInfo": {
+    "pt-BR": "Mostrar Informações",
+    "en-US": "Show Information",
+  },
+  "mapping.zones.entrance": {
+    "pt-BR": "Entrada",
+    "en-US": "Entrance",
+  },
+  "mapping.zones.maintenance": {
+    "pt-BR": "Manutenção",
+    "en-US": "Maintenance",
+  },
+  "mapping.zones.storage": {
+    "pt-BR": "Armazenamento",
+    "en-US": "Storage",
+  },
+  "mapping.zones.exit": {
+    "pt-BR": "Saída",
+    "en-US": "Exit",
+  },
+  "mapping.zones.parking": {
+    "pt-BR": "Estacionamento",
+    "en-US": "Parking",
+  },
+  "mapping.views.normal": {
+    "pt-BR": "Visão Normal",
+    "en-US": "Normal View",
+  },
+  "mapping.views.zones": {
+    "pt-BR": "Visão de Zonas",
+    "en-US": "Zones View",
+  },
+  "mapping.views.heatmap": {
+    "pt-BR": "Mapa de Calor",
+    "en-US": "Heat Map",
+  },
+  "mapping.legend.active": {
+    "pt-BR": "Beacon Ativo",
+    "en-US": "Active Beacon",
+  },
+  "mapping.legend.inactive": {
+    "pt-BR": "Beacon Inativo",
+    "en-US": "Inactive Beacon",
+  },
+  "mapping.legend.selected": {
+    "pt-BR": "Selecionado",
+    "en-US": "Selected",
+  },
 
   // Motorcycles Screen
   "motorcycles.title": {
@@ -329,6 +405,18 @@ const translations: TranslationsType = {
   "common.unknown": {
     "pt-BR": "Desconhecido",
     "en-US": "Unknown",
+  },
+  "history.added": {
+    "pt-BR": "Adicionado",
+    "en-US": "Added",
+  },
+  "history.edited": {
+    "pt-BR": "Editado",
+    "en-US": "Edited",
+  },
+  "history.deleted": {
+    "pt-BR": "Excluído",
+    "en-US": "Deleted",
   },
 }
 
