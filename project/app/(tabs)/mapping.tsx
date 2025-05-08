@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
+import { useZoneDrag } from '@/hooks/useZoneDrag';
 import {
   View,
   Text,
@@ -837,44 +838,100 @@ export default function MappingScreen() {
     )
   }
 
+  // We'll use the existing handleUpdateZone function already defined below
+
   // Renderiza as zonas no mapa
   const renderZones = () => {
     if (mapView !== "zones" && !selectedZone && !isEditMode) return null
 
-    return mapConfig.zones
-      .filter((zone) => !selectedZone || zone.id === selectedZone || isEditMode)
-      .map((zone) => (
+    return mapConfig.zones.map((zone) => {
+      // Converter as strings de posição para números
+      const top = parseFloat(zone.position.top);
+      const left = parseFloat(zone.position.left);
+      const width = parseFloat(zone.position.width);
+      const height = parseFloat(zone.position.height);
+      
+      // Para edição, use o componente ZoneComponent personalizado em vez de criar PanResponder aqui
+      if (isEditMode) {
+        return (
+          <TouchableOpacity
+            key={zone.id}
+            onPress={() => handleZonePress(zone.id)}
+            onLongPress={() => {
+              // Implemente uma lógica de arrastar manualmente ou use outro componente
+              if (isEditMode) {
+                Alert.alert(
+                  "Editar Zona",
+                  "O que deseja fazer com esta zona?",
+                  [
+                    {
+                      text: "Editar Nome",
+                      onPress: () => {
+                        const selectedZone = mapConfig.zones.find((z) => z.id === zone.id);
+                        if (selectedZone) {
+                          setNewZoneName(selectedZone.name);
+                          setEditingZoneId(selectedZone.id);
+                          setShowZoneNameModal(true);
+                        }
+                      }
+                    },
+                    {
+                      text: "Excluir",
+                      style: "destructive",
+                      onPress: () => handleDeleteZone(zone.id)
+                    },
+                    { text: "Cancelar", style: "cancel" }
+                  ]
+                );
+              }
+            }}
+            style={[
+              styles.zoneOverlay,
+              {
+                backgroundColor: `${zone.color}80`,
+                borderColor: zone.color,
+                top: top,
+                left: left,
+                width: width,
+                height: height,
+                position: 'absolute',
+              },
+              isEditMode && styles.editableZone,
+            ]}
+          >
+            <Text style={styles.zoneLabel}>
+              {zone.id}: {zone.name}
+            </Text>
+          </TouchableOpacity>
+        );
+      }
+      
+      // Modo normal (sem edição)
+      return (
         <TouchableOpacity
           key={zone.id}
+          onPress={() => handleZonePress(zone.id)}
           style={[
             styles.zoneOverlay,
             {
-              backgroundColor: `${zone.color}80`, // 50% opacity
+              backgroundColor: `${zone.color}80`,
               borderColor: zone.color,
-              top: Number.parseInt(zone.position.top, 10),
-              left: Number.parseInt(zone.position.left, 10),
-              width: Number.parseInt(zone.position.width, 10),
-              height: Number.parseInt(zone.position.height, 10),
+              top: top,
+              left: left,
+              width: width,
+              height: height,
+              position: 'absolute',
             },
-            isEditMode && styles.editableZone,
+            zone.id === selectedZone && styles.selectedZone,
           ]}
-          onPress={() => handleZonePress(zone.id)}
-          activeOpacity={0.7}
         >
           <Text style={styles.zoneLabel}>
             {zone.id}: {zone.name}
           </Text>
-
-          {isEditMode && (
-            <View style={styles.zoneControls}>
-              <TouchableOpacity style={styles.zoneControlButton} onPress={() => handleDeleteZone(zone.id)}>
-                <Trash2 size={16} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          )}
         </TouchableOpacity>
-      ))
-  }
+      );
+    });
+  };
 
   const renderHeatmap = () => {
     if (mapView !== "heatmap") return null
@@ -908,8 +965,8 @@ export default function MappingScreen() {
               styles.heatSpot,
               {
                 backgroundColor: color,
-                top: `${markerPosition.position.y}%`,
-                left: `${markerPosition.position.x}%`,
+                top: markerPosition.position.y,
+                left: markerPosition.position.x,
                 width: size,
                 height: size,
               },
@@ -941,8 +998,8 @@ export default function MappingScreen() {
               styles.heatSpot,
               {
                 backgroundColor: `${zone.color}60`,
-                top: `${zoneTop + zoneHeight/2}%`,
-                left: `${zoneLeft + zoneWidth/2}%`,
+                top: zoneTop + zoneHeight/2,
+                left: zoneLeft + zoneWidth/2,
                 width: Math.min(200, zoneWidth * 2),
                 height: Math.min(200, zoneHeight * 2),
               },
@@ -1012,8 +1069,8 @@ export default function MappingScreen() {
                   style={[
                     styles.timelineMarker,
                     { 
-                      top: `${position.position.y}%`,
-                      left: `${position.position.x}%`,
+                      top: position.position.y,
+                      left: position.position.x,
                       backgroundColor: item.action === 'add' 
                         ? theme.colors.success[500] 
                         : item.action === 'edit'
@@ -1048,7 +1105,7 @@ export default function MappingScreen() {
             styles.gridLine,
             styles.horizontalLine,
             {
-              top: `${(i / mapConfig.gridSize) * 100}%`,
+              top: (i / mapConfig.gridSize) * 100,
               borderColor: `${theme.colors.gray[400]}40`,
             },
           ]}
@@ -1066,7 +1123,7 @@ export default function MappingScreen() {
             styles.gridLine,
             styles.verticalLine,
             {
-              left: `${(i / mapConfig.gridSize) * 100}%`,
+              left: (i / mapConfig.gridSize) * 100,
               borderColor: `${theme.colors.gray[400]}40`,
             },
           ]}
@@ -2335,6 +2392,15 @@ const styles = StyleSheet.create({
   editableZone: {
     borderStyle: "dashed",
     borderWidth: 2,
+  },
+  selectedZone: {
+    borderWidth: 3,
+    borderColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 5,
+    elevation: 5,
   },
   zoneLabel: {
     fontFamily: "Poppins-Medium",
