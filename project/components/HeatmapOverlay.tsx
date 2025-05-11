@@ -11,7 +11,10 @@ interface HeatPoint {
 }
 
 interface HeatmapOverlayProps {
-  points: HeatPoint[];
+  beacons?: any[];
+  zones?: any[];
+  markerPositions?: any[];
+  points?: HeatPoint[];
   width?: number;
   height?: number;
   maxRadius?: number;
@@ -22,8 +25,11 @@ interface HeatmapOverlayProps {
   blendMode?: 'screen' | 'overlay' | 'normal';
 }
 
-export const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
-  points,
+const HeatmapOverlay: React.FC<HeatmapOverlayProps> = ({
+  beacons = [],
+  zones = [],
+  markerPositions = [],
+  points = [],
   width = 100,
   height = 100,
   maxRadius = 50,
@@ -183,3 +189,5 @@ const styles = StyleSheet.create({
     width: 30,
   },
 });
+
+export default HeatmapOverlay;

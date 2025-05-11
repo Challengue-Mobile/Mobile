@@ -105,4 +105,10 @@ const Themes = {
   },
 };
 
+// Export the theme objects
+export const lightTheme = Themes;
+export const darkTheme = Themes; // For now using the same theme
+
+export type Theme = typeof Themes;
+
 export default Themes;

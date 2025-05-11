@@ -30,6 +30,7 @@ export default function MotosScreen() {
         saveMotorcycle(moto)
       })
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   useEffect(() => {
