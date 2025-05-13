@@ -1,4 +1,5 @@
-const Themes = {
+// Temas para a aplicação
+const LightTheme = {
   colors: {
     // Primary colors
     primary: {
@@ -81,6 +82,7 @@ const Themes = {
     // Base colors
     white: '#ffffff',
     black: '#000000',
+    background: '#f8f9fa',
   },
   fonts: {
     regular: 'Poppins-Regular',
@@ -105,10 +107,38 @@ const Themes = {
   },
 };
 
-// Export the theme objects
-export const lightTheme = Themes;
-export const darkTheme = Themes; // For now using the same theme
+// Tema escuro - modificado para ter fundo preto
+const DarkTheme = {
+  ...LightTheme,
+  colors: {
+    ...LightTheme.colors,
+    // Ajustes para o tema escuro
+    primary: {
+      ...LightTheme.colors.primary,
+      500: '#3b82f6', // Azul mais claro para melhor contraste
+    },
+    gray: {
+      50: '#212529',
+      100: '#343a40',
+      200: '#495057',
+      300: '#868e96',
+      400: '#adb5bd',
+      500: '#ced4da',
+      600: '#dee2e6',
+      700: '#e9ecef',
+      800: '#f1f3f5',
+      900: '#f8f9fa',
+    },
+    white: '#f8f9fa',
+    black: '#000000',
+    background: '#000000', // Fundo preto
+  },
+};
 
-export type Theme = typeof Themes;
+// Exportar os temas
+export const lightTheme = LightTheme;
+export const darkTheme = DarkTheme;
 
-export default Themes;
+export type Theme = typeof LightTheme;
+
+export default LightTheme;

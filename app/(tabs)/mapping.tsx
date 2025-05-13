@@ -1,3 +1,33 @@
+<<<<<<< HEAD
+"use client"
+
+import { useState, useRef, useEffect } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Pressable, ScrollView } from "react-native"
+import { SafeAreaView } from "react-native-safe-area-context"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import * as ImagePicker from "expo-image-picker"
+import { RefreshCcw, Layers, Edit, Moon, User } from "lucide-react-native"
+
+// Componentes
+import MapContainer from "@/components/mapping/MapContainer"
+import MapView from "@/components/mapping/MapView/MapView"
+import UserModal from "@/components/mapping/modals/UserModal"
+import BeaconMarkers from "@/components/mapping/MapView/BeaconMarkers"
+import MotorcycleMarkers from "@/components/mapping/MapView/MotorcycleMarkers"
+import ZonesOverlay from "@/components/mapping/MapView/ZonesOverlay"
+import HeatmapOverlay from "@/components/HeatmapOverlay"
+import TimelineOverlay from "@/components/mapping/MapView/TimelineOverlay"
+import MapControls from "@/components/mapping/controls/MapControls"
+import { EditToolbar } from "@/components/mapping/controls"
+import InfoPanel from "@/components/mapping/controls/InfoPanel"
+import ZoneModal from "@/components/mapping/modals/ZoneModal"
+import LayoutModal from "@/components/mapping/modals/LayoutModal"
+import MotoSelectionModal from "@/components/mapping/modals/MotoSelectionModal"
+
+// Vamos importar o novo componente e usar ele no lugar do código inline
+// Adicione esta importação no topo do arquivo
+import BeaconSelectionModal from "@/components/mapping/modals/BeaconSelectionModal"
+=======
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   View, 
@@ -32,6 +62,7 @@ import InfoPanel from '@/components/mapping/controls/InfoPanel';
 import ZoneModal from '@/components/mapping/modals/ZoneModal';
 import LayoutModal from '@/components/mapping/modals/LayoutModal';
 import MotoSelectionModal from '@/components/mapping/modals/MotoSelectionModal';
+>>>>>>> parent of 86c1a8a (alterçaãi)
 
 // Hooks e Contextos
 import { useTheme } from '@/contexts/ThemeContext';
@@ -52,6 +83,46 @@ import { MapConfig, MarkerPosition, MapViewMode } from '@/components/mapping/typ
 
 const MappingScreen = () => {
   // Hooks de contexto
+<<<<<<< HEAD
+  const { theme } = useTheme()
+  const { t } = useLocalization()
+  // Agora, vamos modificar a desestruturação dos hooks para incluir as novas funções
+  const { beacons, saveBeacon } = useBeacons()
+  const { motorcycles, saveMotorcycle } = useMotorcycles()
+
+  // E adicione estas funções:
+  const associateBeacon = (beaconId: string, motoId: string | null) => {
+    const beacon = beacons.find(b => b.id === beaconId);
+    if (beacon) {
+      saveBeacon({ ...beacon, motoId });
+    }
+  };
+
+  const associateMoto = (motoId: string, beaconId: string | null) => {
+    const moto = motorcycles.find(m => m.id === motoId);
+    if (moto) {
+      saveMotorcycle({ ...moto, beaconId });
+    }
+  };
+  const { isScanning, startScan } = useScan()
+  const { history } = useHistory()
+
+  // Estados do mapa
+  const [selectedBeacon, setSelectedBeacon] = useState<string | null>(null)
+  const [useBlackBackground, setUseBlackBackground] = useState(true)
+  const [showUserModal, setShowUserModal] = useState(false)
+  const [currentUser, setCurrentUser] = useState({
+    id: '1',
+    name: "Admin",
+    role: "admin" // 'admin' ou 'client'
+  })
+  const [users, setUsers] = useState([
+    { id: '1', name: 'Admin', role: 'admin' },
+    { id: '2', name: 'Cliente', role: 'client' }
+  ])
+  const [searchQuery] = useState("")
+  const [mapView, setMapView] = useState<MapViewMode>("normal")
+=======
   const { theme } = useTheme();
   const { t } = useLocalization();
   const { beacons } = useBeacons();
@@ -63,6 +134,7 @@ const MappingScreen = () => {
   const [selectedBeacon, setSelectedBeacon] = useState<string | null>(null);
   const [searchQuery] = useState("");
   const [mapView, setMapView] = useState<MapViewMode>("normal");
+>>>>>>> parent of 86c1a8a (alterçaãi)
   // Removed unused state
   const [selectedZone, setSelectedZone] = useState<string | null>(null);
   const [showInfoPanel, setShowInfoPanel] = useState(true);
@@ -117,10 +189,19 @@ const MappingScreen = () => {
   const { filteredBeacons } = useBeaconFiltering(beacons, motorcycles, beaconPositions, searchQuery, null);
 
   // Carregar dados iniciais
+  // Modifique seu useEffect existente:
   useEffect(() => {
+<<<<<<< HEAD
+    loadSavedLayouts()
+    loadMarkerPositions()
+    loadSettings()
+    loadUsers()
+  }, [])
+=======
     loadSavedLayouts();
     loadMarkerPositions();
   }, []);
+>>>>>>> parent of 86c1a8a (alterçaãi)
 
   const loadSavedLayouts = async () => {
     try {
@@ -211,11 +292,119 @@ const MappingScreen = () => {
     saveMarkerPositions(updatedPositions);
     
     // Limpar o modo de colocação
+<<<<<<< HEAD
+    setIsPlacementMode(false)
+    setPlacementPosition(null)
+    setShowMotoSelectionModal(false)
+  }
+  const loadSettings = async () => {
+    try {
+      const blackBg = await AsyncStorage.getItem("useBlackBackground")
+      if (blackBg !== null) {
+        setUseBlackBackground(JSON.parse(blackBg))
+      }
+=======
     setIsPlacementMode(false);
     setPlacementPosition(null);
     setShowMotoSelectionModal(false);
   };
+>>>>>>> parent of 86c1a8a (alterçaãi)
 
+      const currentUserData = await AsyncStorage.getItem("currentUser")
+      if (currentUserData) {
+        setCurrentUser(JSON.parse(currentUserData))
+      }
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error)
+    }
+  }
+
+  const loadUsers = async () => {
+    try {
+      const usersData = await AsyncStorage.getItem("users")
+      if (usersData) {
+        setUsers(JSON.parse(usersData))
+      }
+    } catch (error) {
+      console.error("Erro ao carregar usuários:", error)
+    }
+  }
+
+  const saveSettings = async () => {
+    try {
+      await AsyncStorage.setItem("useBlackBackground", JSON.stringify(useBlackBackground))
+      await AsyncStorage.setItem("currentUser", JSON.stringify(currentUser))
+    } catch (error) {
+      console.error("Erro ao salvar configurações:", error)
+    }
+  }
+
+  const saveUsers = async () => {
+    try {
+      await AsyncStorage.setItem("users", JSON.stringify(users))
+    } catch (error) {
+      console.error("Erro ao salvar usuários:", error)
+    }
+  }
+  const handleAddUser = (name: string, role: string) => {
+    const newUser = {
+      id: Date.now().toString(),
+      name,
+      role
+    }
+
+    const updatedUsers = [...users, newUser]
+    setUsers(updatedUsers)
+    saveUsers()
+
+    Alert.alert("Sucesso", "Usuário adicionado com sucesso!")
+  }
+
+  const handleSwitchUser = (userId: string) => {
+    const user = users.find(u => u.id === userId)
+    if (user) {
+      setCurrentUser(user)
+      saveSettings()
+      setShowUserModal(false)
+      Alert.alert("Usuário alterado", `Agora você está conectado como ${user.name}.`)
+    }
+  }
+
+  const handleDeleteUser = (userId: string) => {
+    // Não permitir excluir o usuário atual
+    if (userId === currentUser.id) {
+      Alert.alert("Erro", "Não é possível excluir o usuário atual.")
+      return
+    }
+
+    Alert.alert(
+      "Confirmar exclusão",
+      "Tem certeza que deseja excluir este usuário?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Excluir",
+          style: "destructive",
+          onPress: () => {
+            const updatedUsers = users.filter(u => u.id !== userId)
+            setUsers(updatedUsers)
+            saveUsers()
+            Alert.alert("Sucesso", "Usuário excluído com sucesso!")
+          }
+        }
+      ]
+    )
+  }
+  const handleZoneUpdate = (zoneId: string, newPosition: { top: string; left: string; width: string; height: string }) => {
+    setMapConfig(prev => ({
+      ...prev,
+      zones: prev.zones.map(zone =>
+        zone.id === zoneId ? { ...zone, position: newPosition } : zone
+      )
+    }))
+  }
+  // Verificar permissões de usuário
+  const canEdit = currentUser.role === 'admin'
   // Funções de zona
   const handleCreateZone = () => {
     setNewZoneName("");
@@ -278,6 +467,31 @@ const MappingScreen = () => {
       <View style={[styles.header, { backgroundColor: theme.colors.white }]}>
         <Text style={[styles.title, { color: theme.colors.gray[900] }]}>{t("mapping.title")}</Text>
         <View style={styles.headerButtons}>
+          {/* Toggle para fundo preto - ADICIONAR ESTA PARTE */}
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: useBlackBackground ? theme.colors.gray[800] : theme.colors.gray[300] }]}
+            onPress={() => {
+              setUseBlackBackground(!useBlackBackground)
+              // Aplicar o fundo preto/alteração de cor
+              setMapConfig(prev => ({
+                ...prev,
+                backgroundColor: useBlackBackground ? theme.colors.gray[100] : '#000000'
+              }))
+              saveSettings()
+            }}
+          >
+            <Moon size={18} color={theme.colors.white} />
+          </TouchableOpacity>
+
+          {/* Botão de usuário - ADICIONAR ESTA PARTE */}
+          <TouchableOpacity
+            style={[styles.headerButton, { backgroundColor: theme.colors.gray[500] }]}
+            onPress={() => setShowUserModal(true)}
+          >
+            <User size={18} color={theme.colors.white} />
+          </TouchableOpacity>
+
+          {/* Seus botões existentes - MANTER ESTA PARTE */}
           {!isEditMode && (
             <>
               <TouchableOpacity
@@ -315,6 +529,8 @@ const MappingScreen = () => {
         </View>
       </View>
 
+
+
       {/* Barra de ferramentas de edição */}
       {isEditMode && (
         <EditToolbar
@@ -332,6 +548,50 @@ const MappingScreen = () => {
                 quality: 1,
               });
 
+<<<<<<< HEAD
+                    if (!result.canceled) {
+                      setMapConfig((prev) => ({
+                        ...prev,
+                        backgroundImage: { uri: result.assets[0].uri },
+                        backgroundColor: undefined,
+                      }))
+                    }
+                  } catch (error) {
+                    console.error("Erro ao selecionar imagem:", error)
+                    Alert.alert("Erro", "Não foi possível selecionar a imagem.")
+                  }
+                },
+              },
+              {
+                text: "Cor Sólida",
+                onPress: () => {
+                  const colors = [
+                    { name: "Branco", value: "#ffffff" },
+                    { name: "Cinza Claro", value: theme.colors.gray[100] },
+                    { name: "Cinza", value: theme.colors.gray[300] },
+                    { name: "Azul Claro", value: theme.colors.primary[100] },
+                    { name: "Verde Claro", value: theme.colors.success[100] },
+                  ]
+
+                  Alert.alert(
+                    "Selecionar Cor de Fundo",
+                    "Escolha uma cor para o fundo do mapa",
+                    colors.map((color) => ({
+                      text: color.name,
+                      onPress: () => {
+                        setMapConfig((prev) => ({
+                          ...prev,
+                          backgroundImage: null,
+                          backgroundColor: color.value,
+                        }))
+                      },
+                    })),
+                  )
+                },
+              },
+              { text: "Cancelar", style: "cancel" },
+            ])
+=======
               if (!result.canceled) {
                 setMapConfig(prev => ({
                   ...prev,
@@ -342,6 +602,7 @@ const MappingScreen = () => {
               console.error("Erro ao selecionar imagem:", error);
               Alert.alert("Erro", "Não foi possível selecionar a imagem.");
             }
+>>>>>>> parent of 86c1a8a (alterçaãi)
           }}
           onToggleGrid={() => setMapConfig(prev => ({
             ...prev,
@@ -368,8 +629,45 @@ const MappingScreen = () => {
           style={transformStyle}
           {...(!isEditMode ? panHandlers : {})}
         >
+<<<<<<< HEAD
+          <ZonesOverlay
+            zones={mapConfig.zones}
+            selectedZone={selectedZone}
+            isEditMode={isEditMode && canEdit} // Agora considera permissões de usuário
+            onZonePress={(zoneId) => {
+              if (isEditMode && canEdit) {
+                const zone = mapConfig.zones.find((z) => z.id === zoneId)
+                if (zone) {
+                  setNewZoneName(zone.name)
+                  setSelectedZoneColor(zone.color)
+                  setEditingZoneId(zone.id)
+                  setShowZoneNameModal(true)
+                }
+              } else {
+                setSelectedZone(zoneId === selectedZone ? null : zoneId)
+
+                // Mostrar motos nesta zona
+                const motosInZone = markerPositions
+                  .filter((pos) => pos.zoneId === zoneId && pos.type === "motorcycle")
+                  .map((pos) => motorcycles.find((m) => m.id === pos.id))
+                  .filter(Boolean)
+
+                if (motosInZone.length > 0) {
+                  const zone = mapConfig.zones.find((z) => z.id === zoneId)
+                  Alert.alert(
+                    `Motos na Zona ${zone?.name || zoneId}`,
+                    `Motos nesta zona: ${motosInZone.length}\n\n${motosInZone.map((m) => `- ${m?.model} (${m?.licensePlate})`).join("\n")}`,
+                  )
+                }
+              }
+            }}
+            onZoneUpdate={canEdit ? handleZoneUpdate : undefined} // Função para atualizar posição da zona
+          />
+          <BeaconMarkers
+=======
           {/* Componentes do mapa */}
           <BeaconMarkers 
+>>>>>>> parent of 86c1a8a (alterçaãi)
             beacons={filteredBeacons}
             markerPositions={markerPositions}
             selectedBeacon={selectedBeacon}
@@ -482,6 +780,7 @@ const MappingScreen = () => {
         onClose={() => setShowZoneNameModal(false)}
         onSave={handleSaveZone}
         onNameChange={setNewZoneName}
+        colorOptions={getZoneColorOptions()} 
         onDelete={() => {
           if (editingZoneId) {
             Alert.alert("Confirmar exclusão", "Tem certeza que deseja excluir esta zona?", [
@@ -620,6 +919,40 @@ const MappingScreen = () => {
           </View>
         </Pressable>
       </Modal>
+<<<<<<< HEAD
+
+      {/* Modal para selecionar beacon */}
+      <BeaconSelectionModal
+        visible={showBeaconSelectionModal}
+        beacons={beacons.filter((b) => !b.motoId)}
+        onClose={() => {
+          setShowBeaconSelectionModal(false)
+          setSelectedMotoForBeacon(null)
+        }}
+        onSelectBeacon={(beaconId) => {
+          if (selectedMotoForBeacon) {
+            // Associar o beacon à moto
+            associateBeacon(beaconId, selectedMotoForBeacon)
+            associateMoto(selectedMotoForBeacon, beaconId)
+
+            Alert.alert("Beacon associado", `O beacon ${beaconId} foi associado à moto.`)
+
+            setShowBeaconSelectionModal(false)
+            setSelectedMotoForBeacon(null)
+          }
+        }}
+      />
+      <UserModal
+        visible={showUserModal}
+        onClose={() => setShowUserModal(false)}
+        currentUser={currentUser}
+        users={users}
+        onSwitchUser={handleSwitchUser}
+        onAddUser={handleAddUser}
+        onDeleteUser={handleDeleteUser}
+      />
+=======
+>>>>>>> parent of 86c1a8a (alterçaãi)
     </SafeAreaView>
   );
 };
