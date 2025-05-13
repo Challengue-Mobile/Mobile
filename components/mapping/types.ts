@@ -29,6 +29,7 @@ export type DrawShape = 'circle' | 'polygon' | null;
 export interface MapConfig {
   backgroundImage: any;
   zones: Zone[];
+  backgroundColor?: string; // Adicione esta linha
   gridVisible: boolean;
   gridSize: number;
 }

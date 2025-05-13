@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 "use client"
 
 import { useState, useRef, useEffect } from "react"
@@ -6,12 +5,11 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Pressable, Scro
 import { SafeAreaView } from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import * as ImagePicker from "expo-image-picker"
-import { RefreshCcw, Layers, Edit, Moon, User } from "lucide-react-native"
+import { RefreshCcw, Layers, Edit } from "lucide-react-native"
 
 // Componentes
 import MapContainer from "@/components/mapping/MapContainer"
 import MapView from "@/components/mapping/MapView/MapView"
-import UserModal from "@/components/mapping/modals/UserModal"
 import BeaconMarkers from "@/components/mapping/MapView/BeaconMarkers"
 import MotorcycleMarkers from "@/components/mapping/MapView/MotorcycleMarkers"
 import ZonesOverlay from "@/components/mapping/MapView/ZonesOverlay"
@@ -27,139 +25,93 @@ import MotoSelectionModal from "@/components/mapping/modals/MotoSelectionModal"
 // Vamos importar o novo componente e usar ele no lugar do código inline
 // Adicione esta importação no topo do arquivo
 import BeaconSelectionModal from "@/components/mapping/modals/BeaconSelectionModal"
-=======
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as ImagePicker from 'expo-image-picker';
-import { 
-  RefreshCcw, 
-  Layers, 
-  Edit
-} from 'lucide-react-native';
-
-// Componentes
-import MapContainer from '@/components/mapping/MapContainer';
-import MapView from '@/components/mapping/MapView/MapView';
-import BeaconMarkers from '@/components/mapping/MapView/BeaconMarkers';
-import MotorcycleMarkers from '@/components/mapping/MapView/MotorcycleMarkers';
-import ZonesOverlay from '@/components/mapping/MapView/ZonesOverlay';
-import HeatmapOverlay from '@/components/HeatmapOverlay';
-import TimelineOverlay from '@/components/mapping/MapView/TimelineOverlay';
-import MapControls from '@/components/mapping/controls/MapControls';
-import { EditToolbar } from '@/components/mapping/controls';
-import InfoPanel from '@/components/mapping/controls/InfoPanel';
-import ZoneModal from '@/components/mapping/modals/ZoneModal';
-import LayoutModal from '@/components/mapping/modals/LayoutModal';
-import MotoSelectionModal from '@/components/mapping/modals/MotoSelectionModal';
->>>>>>> parent of 86c1a8a (alterçaãi)
 
 // Hooks e Contextos
-import { useTheme } from '@/contexts/ThemeContext';
-import { useLocalization } from '@/contexts/LocalizationContext';
-import { useBeacons } from '@/hooks/useBeacons';
-import { useMotorcycles } from '@/hooks/useMotorcycles';
-import { useScan } from '@/contexts/ScanContext';
-import { useHistory } from '@/contexts/HistoryContext';
-import { useMapGestures } from '@/hooks/useMapGestures';
-import { useBeaconFiltering } from '@/hooks/useBeaconFiltering';
+import { useTheme } from "@/contexts/ThemeContext"
+import { useLocalization } from "@/contexts/LocalizationContext"
+import { useScan } from "@/contexts/ScanContext"
+import { useHistory } from "@/contexts/HistoryContext"
+import { useMapGestures } from "@/hooks/useMapGestures"
+import { useBeaconFiltering } from "@/hooks/useBeaconFiltering"
 
 // Componentes adicionais
-import BeaconInfoPanel from '@/components/BeaconInfoPanel';
-import BeaconList from '@/components/BeaconList';
+import BeaconInfoPanel from "@/components/BeaconInfoPanel"
+import BeaconList from "@/components/BeaconList"
 
 // Tipos
-import { MapConfig, MarkerPosition, MapViewMode } from '@/components/mapping/types';
+import type { MapConfig, MarkerPosition, MapViewMode } from "@/components/mapping/types"
+
+// Agora vamos implementar a associação real de beacons a motos
+
+// Primeiro, vamos importar os hooks necessários
+import { useBeacons } from "@/hooks/useBeacons"
+import { useMotorcycles } from "@/hooks/useMotorcycles"
+
+// Importar utilitários para detectar zonas
+import { findZoneForPoint } from "@/components/mapping/utils/PositionUtils"
 
 const MappingScreen = () => {
   // Hooks de contexto
-<<<<<<< HEAD
   const { theme } = useTheme()
   const { t } = useLocalization()
   // Agora, vamos modificar a desestruturação dos hooks para incluir as novas funções
   const { beacons, saveBeacon } = useBeacons()
-  const { motorcycles, saveMotorcycle } = useMotorcycles()
+const { motorcycles, saveMotorcycle } = useMotorcycles()
 
-  // E adicione estas funções:
-  const associateBeacon = (beaconId: string, motoId: string | null) => {
-    const beacon = beacons.find(b => b.id === beaconId);
-    if (beacon) {
-      saveBeacon({ ...beacon, motoId });
-    }
-  };
+// Criar funções para associar beacons e motos
+const associateBeacon = (beaconId: string, motoId: string | null) => {
+  const beacon = beacons.find(b => b.id === beaconId);
+  if (beacon) {
+    saveBeacon({ ...beacon, motoId });
+  }
+};
 
-  const associateMoto = (motoId: string, beaconId: string | null) => {
-    const moto = motorcycles.find(m => m.id === motoId);
-    if (moto) {
-      saveMotorcycle({ ...moto, beaconId });
-    }
-  };
+const associateMoto = (motoId: string, beaconId: string | null) => {
+  const moto = motorcycles.find(m => m.id === motoId);
+  if (moto) {
+    saveMotorcycle({ ...moto, beaconId });
+  }
+};
   const { isScanning, startScan } = useScan()
   const { history } = useHistory()
 
   // Estados do mapa
   const [selectedBeacon, setSelectedBeacon] = useState<string | null>(null)
-  const [useBlackBackground, setUseBlackBackground] = useState(true)
-  const [showUserModal, setShowUserModal] = useState(false)
-  const [currentUser, setCurrentUser] = useState({
-    id: '1',
-    name: "Admin",
-    role: "admin" // 'admin' ou 'client'
-  })
-  const [users, setUsers] = useState([
-    { id: '1', name: 'Admin', role: 'admin' },
-    { id: '2', name: 'Cliente', role: 'client' }
-  ])
   const [searchQuery] = useState("")
   const [mapView, setMapView] = useState<MapViewMode>("normal")
-=======
-  const { theme } = useTheme();
-  const { t } = useLocalization();
-  const { beacons } = useBeacons();
-  const { motorcycles } = useMotorcycles();
-  const { isScanning, startScan } = useScan();
-  const { history } = useHistory();
-
-  // Estados do mapa
-  const [selectedBeacon, setSelectedBeacon] = useState<string | null>(null);
-  const [searchQuery] = useState("");
-  const [mapView, setMapView] = useState<MapViewMode>("normal");
->>>>>>> parent of 86c1a8a (alterçaãi)
   // Removed unused state
-  const [selectedZone, setSelectedZone] = useState<string | null>(null);
-  const [showInfoPanel, setShowInfoPanel] = useState(true);
-  const [isEditMode, setIsEditMode] = useState(false);
-  const [isPlacementMode, setIsPlacementMode] = useState(false);
-  const [placementPosition, setPlacementPosition] = useState<{ x: number; y: number } | null>(null);
+  const [selectedZone, setSelectedZone] = useState<string | null>(null)
+  const [showInfoPanel, setShowInfoPanel] = useState(true)
+  const [isEditMode, setIsEditMode] = useState(false)
+  const [isPlacementMode, setIsPlacementMode] = useState(false)
+  const [placementPosition, setPlacementPosition] = useState<{ x: number; y: number } | null>(null)
   // Removed unused state declaration
-  const [isDrawMode, setIsDrawMode] = useState(false);
-  const [drawShape, setDrawShape] = useState<'circle' | 'polygon' | undefined>(undefined);
-  const [drawPoints, setDrawPoints] = useState<{x: number, y: number}[]>([]);
-  const [markerPositions, setMarkerPositions] = useState<MarkerPosition[]>([]);
-  const [savedLayouts, setSavedLayouts] = useState<any[]>([]);
-  
+  const [isDrawMode, setIsDrawMode] = useState(false)
+  const [drawShape, setDrawShape] = useState<"circle" | "polygon" | undefined>(undefined)
+  const [drawPoints, setDrawPoints] = useState<{ x: number; y: number }[]>([])
+  const [markerPositions, setMarkerPositions] = useState<MarkerPosition[]>([])
+  const [savedLayouts, setSavedLayouts] = useState<any[]>([])
+
   // Estados para modais
-  const [showZoneNameModal, setShowZoneNameModal] = useState(false);
-  const [showSaveLayoutModal, setShowSaveLayoutModal] = useState(false);
-  const [showLayoutsModal, setShowLayoutsModal] = useState(false);
-  const [showMotoSelectionModal, setShowMotoSelectionModal] = useState(false);
-  const [editingZoneId, setEditingZoneId] = useState<string | null>(null);
-  const [newZoneName, setNewZoneName] = useState("");
-  const [layoutName, setLayoutName] = useState("");
+  const [showZoneNameModal, setShowZoneNameModal] = useState(false)
+  const [showSaveLayoutModal, setShowSaveLayoutModal] = useState(false)
+  const [showLayoutsModal, setShowLayoutsModal] = useState(false)
+  const [showMotoSelectionModal, setShowMotoSelectionModal] = useState(false)
+  const [editingZoneId, setEditingZoneId] = useState<string | null>(null)
+  const [newZoneName, setNewZoneName] = useState("")
+  const [layoutName, setLayoutName] = useState("")
+  const [selectedZoneColor, setSelectedZoneColor] = useState(theme.colors.primary[300])
+
+  // Vamos modificar o componente de mapeamento para permitir associar beacons a motos
+
+  // Primeiro, vamos adicionar um novo estado para controlar o modal de seleção de beacon
+  const [showBeaconSelectionModal, setShowBeaconSelectionModal] = useState(false)
+  const [selectedMotoForBeacon, setSelectedMotoForBeacon] = useState<string | null>(null)
 
   // Configuração inicial do mapa
   const [mapConfig, setMapConfig] = useState<MapConfig>({
-    backgroundImage: require("@/assets/images/MAPA.png"),
+    backgroundImage: null, // Removendo a imagem de fundo
+    backgroundColor: theme.colors.gray[100], // Adicionando cor de fundo
     zones: [
       {
         id: "A",
@@ -167,286 +119,197 @@ const MappingScreen = () => {
         color: theme.colors.primary[300],
         position: { top: "10%", left: "10%", width: "30%", height: "20%" },
       },
-      // ... outras zonas padrão
+      {
+        id: "B",
+        name: t("mapping.zones.maintenance"),
+        color: theme.colors.secondary[300],
+        position: { top: "40%", left: "10%", width: "25%", height: "20%" },
+      },
+      {
+        id: "C",
+        name: t("mapping.zones.storage"),
+        color: theme.colors.success[300],
+        position: { top: "10%", left: "50%", width: "30%", height: "20%" },
+      },
+      {
+        id: "D",
+        name: t("mapping.zones.parking"),
+        color: theme.colors.warning[300],
+        position: { top: "40%", left: "50%", width: "25%", height: "30%" },
+      },
     ],
     gridVisible: true,
     gridSize: 10,
-  });
+  })
 
   // Referências
-  const mapWrapperRef = useRef<View>(null);
+  const mapWrapperRef = useRef<View>(null)
 
   // Hooks personalizados
   const { transformStyle, panHandlers, zoomIn, zoomOut, resetView } = useMapGestures({
     initialScale: 1,
     minScale: 0.5,
-    maxScale: 3
-  });
-  
+    maxScale: 3,
+  })
+
   // Filtragem de beacons
   // Definindo um objeto vazio para beaconPositions
-  const beaconPositions = {};
-  const { filteredBeacons } = useBeaconFiltering(beacons, motorcycles, beaconPositions, searchQuery, null);
+  const beaconPositions = {}
+  const { filteredBeacons } = useBeaconFiltering(beacons, motorcycles, beaconPositions, searchQuery, null)
 
   // Carregar dados iniciais
-  // Modifique seu useEffect existente:
   useEffect(() => {
-<<<<<<< HEAD
     loadSavedLayouts()
     loadMarkerPositions()
-    loadSettings()
-    loadUsers()
   }, [])
-=======
-    loadSavedLayouts();
-    loadMarkerPositions();
-  }, []);
->>>>>>> parent of 86c1a8a (alterçaãi)
 
   const loadSavedLayouts = async () => {
     try {
-      const layouts = await AsyncStorage.getItem("savedLayouts");
-      if (layouts) setSavedLayouts(JSON.parse(layouts));
+      const layouts = await AsyncStorage.getItem("savedLayouts")
+      if (layouts) setSavedLayouts(JSON.parse(layouts))
     } catch (error) {
-      console.error("Erro ao carregar layouts:", error);
+      console.error("Erro ao carregar layouts:", error)
     }
-  };
+  }
 
   const loadMarkerPositions = async () => {
     try {
-      const positions = await AsyncStorage.getItem("markerPositions");
-      if (positions) setMarkerPositions(JSON.parse(positions));
+      const positions = await AsyncStorage.getItem("markerPositions")
+      if (positions) setMarkerPositions(JSON.parse(positions))
     } catch (error) {
-      console.error("Erro ao carregar posições:", error);
+      console.error("Erro ao carregar posições:", error)
     }
-  };
+  }
 
   const saveMarkerPositions = async (positions: MarkerPosition[]) => {
     try {
-      await AsyncStorage.setItem("markerPositions", JSON.stringify(positions));
+      await AsyncStorage.setItem("markerPositions", JSON.stringify(positions))
     } catch (error) {
-      console.error("Erro ao salvar posições:", error);
+      console.error("Erro ao salvar posições:", error)
     }
-  };
+  }
 
   // Funções de manipulação do mapa
   const handleMapTap = (event: any) => {
     if (isDrawMode) {
-      handleDrawTap(event);
+      handleDrawTap(event)
     } else if (isPlacementMode) {
-      handlePlacementTap(event);
+      handlePlacementTap(event)
     }
-  };
+  }
 
   const handleDrawTap = (event: any) => {
-    if (!isDrawMode || drawShape === undefined) return;
+    if (!isDrawMode || drawShape === undefined) return
 
-    const { locationX, locationY } = event.nativeEvent;
-    
+    const { locationX, locationY } = event.nativeEvent
+
     mapWrapperRef.current?.measure((x, y, width, height, pageX, pageY) => {
-      const xPercent = (locationX / width) * 100;
-      const yPercent = (locationY / height) * 100;
-      
-      const newPoint = { x: xPercent, y: yPercent };
-      setDrawPoints([...drawPoints, newPoint]);
-      
+      const xPercent = (locationX / width) * 100
+      const yPercent = (locationY / height) * 100
+
+      const newPoint = { x: xPercent, y: yPercent }
+      setDrawPoints([...drawPoints, newPoint])
+
       // Se for um polígono e tiver pelo menos 3 pontos, pode criar uma zona
-      if (drawShape === 'polygon' && drawPoints.length >= 2) {
+      if (drawShape === "polygon" && drawPoints.length >= 2) {
         // Implemente aqui a criação de zona baseada em polígono
         // Esta é uma implementação básica, você pode expandi-la conforme necessário
       }
-    });
-  };
+    })
+  }
 
   const handlePlacementTap = (event: any) => {
-    const { locationX, locationY } = event.nativeEvent;
-    
+    const { locationX, locationY } = event.nativeEvent
+
     mapWrapperRef.current?.measure((x, y, width, height, pageX, pageY) => {
-      const xPercent = (locationX / width) * 100;
-      const yPercent = (locationY / height) * 100;
-      
-      setPlacementPosition({ x: xPercent, y: yPercent });
-      setShowMotoSelectionModal(true);
-    });
-  };
+      const xPercent = (locationX / width) * 100
+      const yPercent = (locationY / height) * 100
+
+      setPlacementPosition({ x: xPercent, y: yPercent })
+      setShowMotoSelectionModal(true)
+    })
+  }
 
   const placeMotorcycle = (motoId: string) => {
-    if (!placementPosition) return;
+    if (!placementPosition) return
+
+    // Detectar em qual zona a moto está sendo colocada
+    const zoneId = findZoneForPoint(placementPosition, mapConfig.zones)
 
     // Criar uma nova posição de marcador
     const newMarkerPosition: MarkerPosition = {
       id: motoId,
-      type: 'motorcycle',
+      type: "motorcycle",
       position: {
         x: placementPosition.x,
-        y: placementPosition.y
+        y: placementPosition.y,
       },
-      zoneId: null
-    };
+      zoneId: zoneId,
+    }
 
     // Atualizar as posições
-    const updatedPositions = markerPositions.filter(pos => pos.id !== motoId);
-    updatedPositions.push(newMarkerPosition);
-    
-    setMarkerPositions(updatedPositions);
-    saveMarkerPositions(updatedPositions);
-    
+    const updatedPositions = markerPositions.filter((pos) => pos.id !== motoId)
+    updatedPositions.push(newMarkerPosition)
+
+    setMarkerPositions(updatedPositions)
+    saveMarkerPositions(updatedPositions)
+
+    // Mostrar mensagem sobre a zona
+    if (zoneId) {
+      const zone = mapConfig.zones.find((z) => z.id === zoneId)
+      if (zone) {
+        Alert.alert("Moto posicionada", `A moto foi posicionada na zona: ${zone.name}`)
+      }
+    }
+
     // Limpar o modo de colocação
-<<<<<<< HEAD
     setIsPlacementMode(false)
     setPlacementPosition(null)
     setShowMotoSelectionModal(false)
   }
-  const loadSettings = async () => {
-    try {
-      const blackBg = await AsyncStorage.getItem("useBlackBackground")
-      if (blackBg !== null) {
-        setUseBlackBackground(JSON.parse(blackBg))
-      }
-=======
-    setIsPlacementMode(false);
-    setPlacementPosition(null);
-    setShowMotoSelectionModal(false);
-  };
->>>>>>> parent of 86c1a8a (alterçaãi)
 
-      const currentUserData = await AsyncStorage.getItem("currentUser")
-      if (currentUserData) {
-        setCurrentUser(JSON.parse(currentUserData))
-      }
-    } catch (error) {
-      console.error("Erro ao carregar configurações:", error)
-    }
-  }
-
-  const loadUsers = async () => {
-    try {
-      const usersData = await AsyncStorage.getItem("users")
-      if (usersData) {
-        setUsers(JSON.parse(usersData))
-      }
-    } catch (error) {
-      console.error("Erro ao carregar usuários:", error)
-    }
-  }
-
-  const saveSettings = async () => {
-    try {
-      await AsyncStorage.setItem("useBlackBackground", JSON.stringify(useBlackBackground))
-      await AsyncStorage.setItem("currentUser", JSON.stringify(currentUser))
-    } catch (error) {
-      console.error("Erro ao salvar configurações:", error)
-    }
-  }
-
-  const saveUsers = async () => {
-    try {
-      await AsyncStorage.setItem("users", JSON.stringify(users))
-    } catch (error) {
-      console.error("Erro ao salvar usuários:", error)
-    }
-  }
-  const handleAddUser = (name: string, role: string) => {
-    const newUser = {
-      id: Date.now().toString(),
-      name,
-      role
-    }
-
-    const updatedUsers = [...users, newUser]
-    setUsers(updatedUsers)
-    saveUsers()
-
-    Alert.alert("Sucesso", "Usuário adicionado com sucesso!")
-  }
-
-  const handleSwitchUser = (userId: string) => {
-    const user = users.find(u => u.id === userId)
-    if (user) {
-      setCurrentUser(user)
-      saveSettings()
-      setShowUserModal(false)
-      Alert.alert("Usuário alterado", `Agora você está conectado como ${user.name}.`)
-    }
-  }
-
-  const handleDeleteUser = (userId: string) => {
-    // Não permitir excluir o usuário atual
-    if (userId === currentUser.id) {
-      Alert.alert("Erro", "Não é possível excluir o usuário atual.")
-      return
-    }
-
-    Alert.alert(
-      "Confirmar exclusão",
-      "Tem certeza que deseja excluir este usuário?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Excluir",
-          style: "destructive",
-          onPress: () => {
-            const updatedUsers = users.filter(u => u.id !== userId)
-            setUsers(updatedUsers)
-            saveUsers()
-            Alert.alert("Sucesso", "Usuário excluído com sucesso!")
-          }
-        }
-      ]
-    )
-  }
-  const handleZoneUpdate = (zoneId: string, newPosition: { top: string; left: string; width: string; height: string }) => {
-    setMapConfig(prev => ({
-      ...prev,
-      zones: prev.zones.map(zone =>
-        zone.id === zoneId ? { ...zone, position: newPosition } : zone
-      )
-    }))
-  }
-  // Verificar permissões de usuário
-  const canEdit = currentUser.role === 'admin'
   // Funções de zona
   const handleCreateZone = () => {
-    setNewZoneName("");
-    setEditingZoneId(null);
-    setShowZoneNameModal(true);
-  };
+    setNewZoneName("")
+    setEditingZoneId(null)
+    setSelectedZoneColor(getRandomColor())
+    setShowZoneNameModal(true)
+  }
 
   const handleSaveZone = () => {
     if (!newZoneName.trim()) {
-      Alert.alert("Erro", "O nome da zona não pode estar vazio.");
-      return;
+      Alert.alert("Erro", "O nome da zona não pode estar vazio.")
+      return
     }
 
     if (editingZoneId) {
       // Editar zona existente
-      setMapConfig(prev => ({
+      setMapConfig((prev) => ({
         ...prev,
-        zones: prev.zones.map(zone => 
-          zone.id === editingZoneId ? { ...zone, name: newZoneName } : zone
+        zones: prev.zones.map((zone) =>
+          zone.id === editingZoneId ? { ...zone, name: newZoneName, color: selectedZoneColor } : zone,
         ),
-      }));
+      }))
     } else {
       // Criar nova zona
-      const newZoneId = `zone-${Date.now()}`;
-      const randomColor = getRandomColor();
+      const newZoneId = `zone-${Date.now()}`
 
-      setMapConfig(prev => ({
+      setMapConfig((prev) => ({
         ...prev,
         zones: [
           ...prev.zones,
           {
             id: newZoneId,
             name: newZoneName,
-            color: randomColor,
+            color: selectedZoneColor,
             position: { top: "30%", left: "30%", width: "20%", height: "20%" },
           },
         ],
-      }));
+      }))
     }
 
-    setShowZoneNameModal(false);
-  };
+    setShowZoneNameModal(false)
+  }
 
   const getRandomColor = () => {
     // Using imported generateRandomColor function from MapCalculations
@@ -456,9 +319,22 @@ const MappingScreen = () => {
       theme.colors.success[300],
       theme.colors.warning[300],
       theme.colors.error[300],
-    ];
-    return colors[Math.floor(Math.random() * colors.length)];
-  };
+    ]
+    return colors[Math.floor(Math.random() * colors.length)]
+  }
+
+  const getZoneColorOptions = () => {
+    return [
+      { name: "Azul", value: theme.colors.primary[300] },
+      { name: "Ciano", value: theme.colors.secondary[300] },
+      { name: "Verde", value: theme.colors.success[300] },
+      { name: "Amarelo", value: theme.colors.warning[300] },
+      { name: "Vermelho", value: theme.colors.error[300] },
+      { name: "Roxo", value: "#9c27b0" },
+      { name: "Laranja", value: "#ff9800" },
+      { name: "Rosa", value: "#e91e63" },
+    ]
+  }
 
   // Renderização principal
   return (
@@ -467,40 +343,21 @@ const MappingScreen = () => {
       <View style={[styles.header, { backgroundColor: theme.colors.white }]}>
         <Text style={[styles.title, { color: theme.colors.gray[900] }]}>{t("mapping.title")}</Text>
         <View style={styles.headerButtons}>
-          {/* Toggle para fundo preto - ADICIONAR ESTA PARTE */}
-          <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: useBlackBackground ? theme.colors.gray[800] : theme.colors.gray[300] }]}
-            onPress={() => {
-              setUseBlackBackground(!useBlackBackground)
-              // Aplicar o fundo preto/alteração de cor
-              setMapConfig(prev => ({
-                ...prev,
-                backgroundColor: useBlackBackground ? theme.colors.gray[100] : '#000000'
-              }))
-              saveSettings()
-            }}
-          >
-            <Moon size={18} color={theme.colors.white} />
-          </TouchableOpacity>
-
-          {/* Botão de usuário - ADICIONAR ESTA PARTE */}
-          <TouchableOpacity
-            style={[styles.headerButton, { backgroundColor: theme.colors.gray[500] }]}
-            onPress={() => setShowUserModal(true)}
-          >
-            <User size={18} color={theme.colors.white} />
-          </TouchableOpacity>
-
-          {/* Seus botões existentes - MANTER ESTA PARTE */}
           {!isEditMode && (
             <>
               <TouchableOpacity
                 style={[styles.headerButton, { backgroundColor: theme.colors.secondary[500] }]}
-                onPress={() => setMapView(prev => 
-                  prev === "normal" ? "zones" : 
-                  prev === "zones" ? "heatmap" : 
-                  prev === "heatmap" ? "timeline" : "normal"
-                )}
+                onPress={() =>
+                  setMapView((prev) =>
+                    prev === "normal"
+                      ? "zones"
+                      : prev === "zones"
+                        ? "heatmap"
+                        : prev === "heatmap"
+                          ? "timeline"
+                          : "normal",
+                  )
+                }
               >
                 <Layers size={18} color={theme.colors.white} />
               </TouchableOpacity>
@@ -529,31 +386,32 @@ const MappingScreen = () => {
         </View>
       </View>
 
-
-
       {/* Barra de ferramentas de edição */}
       {isEditMode && (
         <EditToolbar
           onCreateZone={handleCreateZone}
           onStartDrawing={(shape) => {
-            setIsDrawMode(true);
-            setDrawShape(shape);
-            setDrawPoints([]);
+            setIsDrawMode(true)
+            setDrawShape(shape)
+            setDrawPoints([])
           }}
-          onChangeBackground={async () => {
-            try {
-              const result = await ImagePicker.launchImageLibraryAsync({
-                mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                allowsEditing: true,
-                quality: 1,
-              });
+          onChangeBackground={() => {
+            Alert.alert("Alterar Fundo", "Escolha uma opção para o fundo do mapa", [
+              {
+                text: "Selecionar Imagem",
+                onPress: async () => {
+                  try {
+                    const result = await ImagePicker.launchImageLibraryAsync({
+                      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                      allowsEditing: true,
+                      quality: 1,
+                    })
 
-<<<<<<< HEAD
                     if (!result.canceled) {
                       setMapConfig((prev) => ({
                         ...prev,
                         backgroundImage: { uri: result.assets[0].uri },
-                        backgroundColor: undefined,
+                        backgroundColor: undefined, // ou use ""
                       }))
                     }
                   } catch (error) {
@@ -591,29 +449,19 @@ const MappingScreen = () => {
               },
               { text: "Cancelar", style: "cancel" },
             ])
-=======
-              if (!result.canceled) {
-                setMapConfig(prev => ({
-                  ...prev,
-                  backgroundImage: { uri: result.assets[0].uri },
-                }));
-              }
-            } catch (error) {
-              console.error("Erro ao selecionar imagem:", error);
-              Alert.alert("Erro", "Não foi possível selecionar a imagem.");
-            }
->>>>>>> parent of 86c1a8a (alterçaãi)
           }}
-          onToggleGrid={() => setMapConfig(prev => ({
-            ...prev,
-            gridVisible: !prev.gridVisible,
-          }))}
+          onToggleGrid={() =>
+            setMapConfig((prev) => ({
+              ...prev,
+              gridVisible: !prev.gridVisible,
+            }))
+          }
           onSaveLayout={() => setShowSaveLayoutModal(true)}
           onLoadLayout={() => setShowLayoutsModal(true)}
           onCancelDrawing={() => {
-            setIsDrawMode(false);
-            setDrawShape(undefined);
-            setDrawPoints([]);
+            setIsDrawMode(false)
+            setDrawShape(undefined)
+            setDrawPoints([])
           }}
           isDrawing={isDrawMode}
           drawShape={drawShape}
@@ -625,17 +473,90 @@ const MappingScreen = () => {
         <MapView
           ref={mapWrapperRef}
           backgroundImage={mapConfig.backgroundImage}
+          backgroundColor={mapConfig.backgroundColor}
           onPress={handleMapTap}
           style={transformStyle}
           {...(!isEditMode ? panHandlers : {})}
         >
-<<<<<<< HEAD
+          {/* Componentes do mapa */}
+          <BeaconMarkers
+            beacons={filteredBeacons}
+            markerPositions={markerPositions}
+            selectedBeacon={selectedBeacon}
+            onBeaconPress={(beaconId) => {
+              if (isEditMode) return
+              setSelectedBeacon(beaconId === selectedBeacon ? null : beaconId)
+            }}
+            motorcycles={motorcycles}
+          />
+
+          {/* Agora, vamos modificar a função que é chamada quando uma moto é pressionada */}
+          <MotorcycleMarkers
+            motorcycles={motorcycles}
+            beacons={beacons}
+            markerPositions={markerPositions}
+            onMotorcyclePress={(motoId) => {
+              if (isEditMode) return
+              const motorcycle = motorcycles.find((m) => m.id === motoId)
+              if (!motorcycle) return
+
+              const hasBeacon = motorcycle.beaconId !== null
+              const markerPosition = markerPositions.find((p) => p.id === motoId)
+              const zoneId = markerPosition?.zoneId
+              const zone = zoneId ? mapConfig.zones.find((z) => z.id === zoneId) : null
+
+              const zoneInfo = zone ? `\nZona: ${zone.name}` : "\nSem zona atribuída"
+              const beaconInfo = hasBeacon ? `\nBeacon: ${motorcycle.beaconId}` : "\nSem beacon associado"
+
+              Alert.alert(
+                `${motorcycle.model} (${motorcycle.licensePlate})`,
+                `Status: ${motorcycle.status}${zoneInfo}${beaconInfo}`,
+                [
+                  { text: "Fechar", style: "cancel" },
+                  {
+                    text: "Mover",
+                    onPress: () => {
+                      setIsPlacementMode(true)
+                    },
+                  },
+                  {
+                    text: hasBeacon ? "Remover Beacon" : "Adicionar Beacon",
+                    onPress: () => {
+                      if (hasBeacon && motorcycle.beaconId) {
+                        // Remover associação do beacon
+                        Alert.alert("Remover Beacon", "Tem certeza que deseja remover o beacon desta moto?", [
+                          { text: "Cancelar", style: "cancel" },
+                          {
+                            text: "Remover",
+                            style: "destructive",
+                            onPress: () => {
+                              // Remover a associação
+                              associateBeacon(motorcycle.beaconId!, null)
+                              associateMoto(motorcycle.id, null)
+
+                              Alert.alert("Beacon removido", "O beacon foi desassociado da moto.")
+                            },
+                          },
+                        ])
+                      } else {
+                        // Mostrar modal para selecionar um beacon
+                        setSelectedMotoForBeacon(motoId)
+                        setShowBeaconSelectionModal(true)
+                      }
+                    },
+                  },
+                ],
+              )
+            }}
+            zones={mapConfig.zones}
+          />
+
           <ZonesOverlay
             zones={mapConfig.zones}
             selectedZone={selectedZone}
-            isEditMode={isEditMode && canEdit} // Agora considera permissões de usuário
+            isEditMode={isEditMode}
             onZonePress={(zoneId) => {
-              if (isEditMode && canEdit) {
+              if (isEditMode) {
                 const zone = mapConfig.zones.find((z) => z.id === zoneId)
                 if (zone) {
                   setNewZoneName(zone.name)
@@ -661,79 +582,14 @@ const MappingScreen = () => {
                 }
               }
             }}
-            onZoneUpdate={canEdit ? handleZoneUpdate : undefined} // Função para atualizar posição da zona
           />
-          <BeaconMarkers
-=======
-          {/* Componentes do mapa */}
-          <BeaconMarkers 
->>>>>>> parent of 86c1a8a (alterçaãi)
-            beacons={filteredBeacons}
-            markerPositions={markerPositions}
-            selectedBeacon={selectedBeacon}
-            onBeaconPress={(beaconId) => {
-              if (isEditMode) return;
-              setSelectedBeacon(beaconId === selectedBeacon ? null : beaconId);
-            }}
-            motorcycles={motorcycles}
-          />
-          
-          <MotorcycleMarkers
-            motorcycles={motorcycles}
-            markerPositions={markerPositions}
-            onMotorcyclePress={(motoId) => {
-              if (isEditMode) return;
-              const motorcycle = motorcycles.find(m => m.id === motoId);
-              if (!motorcycle) return;
 
-              Alert.alert(
-                `${motorcycle.model} (${motorcycle.licensePlate})`,
-                `Status: ${motorcycle.status}`,
-                [
-                  { text: "Fechar", style: "cancel" },
-                  {
-                    text: "Mover",
-                    onPress: () => {
-                      setIsPlacementMode(true);
-                    },
-                  },
-                ],
-              );
-            }}
-          />
-          
-          <ZonesOverlay
-            zones={mapConfig.zones}
-            selectedZone={selectedZone}
-            isEditMode={isEditMode}
-            onZonePress={(zoneId) => {
-              if (isEditMode) {
-                const zone = mapConfig.zones.find(z => z.id === zoneId);
-                if (zone) {
-                  setNewZoneName(zone.name);
-                  setEditingZoneId(zone.id);
-                  setShowZoneNameModal(true);
-                }
-              } else {
-                setSelectedZone(zoneId === selectedZone ? null : zoneId);
-              }
-            }}
-          />
-          
           {mapView === "heatmap" && (
-            <HeatmapOverlay 
-              beacons={filteredBeacons} 
-              zones={mapConfig.zones} 
-              markerPositions={markerPositions}
-            />
+            <HeatmapOverlay beacons={filteredBeacons} zones={mapConfig.zones} markerPositions={markerPositions} />
           )}
-          
+
           {mapView === "timeline" && (
-            <TimelineOverlay 
-              history={history} 
-              beacons={beacons} 
-              markerPositions={markerPositions}
-            />
+            <TimelineOverlay history={history} beacons={beacons} markerPositions={markerPositions} />
           )}
 
           {/* Controles do mapa */}
@@ -751,23 +607,15 @@ const MappingScreen = () => {
 
       {/* Painel de informações */}
       {!isEditMode && (
-        <InfoPanel
-          isOpen={showInfoPanel}
-          onToggle={() => setShowInfoPanel(!showInfoPanel)}
-          title="Informações"
-        >
+        <InfoPanel isOpen={showInfoPanel} onToggle={() => setShowInfoPanel(!showInfoPanel)} title="Informações">
           {/* Conteúdo do painel de informações */}
           {selectedBeacon ? (
-            <BeaconInfoPanel 
-              beacon={beacons.find(b => b.id === selectedBeacon)} 
+            <BeaconInfoPanel
+              beacon={beacons.find((b) => b.id === selectedBeacon)}
               onClose={() => setSelectedBeacon(null)}
             />
           ) : (
-            <BeaconList 
-              beacons={filteredBeacons}
-              onSelectBeacon={setSelectedBeacon}
-              selectedBeacon={selectedBeacon}
-            />
+            <BeaconList beacons={filteredBeacons} onSelectBeacon={setSelectedBeacon} selectedBeacon={selectedBeacon} />
           )}
         </InfoPanel>
       )}
@@ -780,7 +628,6 @@ const MappingScreen = () => {
         onClose={() => setShowZoneNameModal(false)}
         onSave={handleSaveZone}
         onNameChange={setNewZoneName}
-        colorOptions={getZoneColorOptions()} 
         onDelete={() => {
           if (editingZoneId) {
             Alert.alert("Confirmar exclusão", "Tem certeza que deseja excluir esta zona?", [
@@ -789,26 +636,28 @@ const MappingScreen = () => {
                 text: "Excluir",
                 style: "destructive",
                 onPress: () => {
-                  setMapConfig(prev => ({
+                  setMapConfig((prev) => ({
                     ...prev,
-                    zones: prev.zones.filter(zone => zone.id !== editingZoneId),
-                  }));
-                  setShowZoneNameModal(false);
+                    zones: prev.zones.filter((zone) => zone.id !== editingZoneId),
+                  }))
+                  setShowZoneNameModal(false)
                 },
               },
-            ]);
+            ])
           }
         }}
+        zoneColor={selectedZoneColor}
+        onColorChange={setSelectedZoneColor}
       />
-      
+
       <LayoutModal
         visible={showSaveLayoutModal}
         layoutName={layoutName}
         onClose={() => setShowSaveLayoutModal(false)}
         onSave={async () => {
           if (!layoutName.trim()) {
-            Alert.alert("Erro", "O nome do layout não pode estar vazio.");
-            return;
+            Alert.alert("Erro", "O nome do layout não pode estar vazio.")
+            return
           }
 
           try {
@@ -820,29 +669,29 @@ const MappingScreen = () => {
               gridVisible: mapConfig.gridVisible,
               gridSize: mapConfig.gridSize,
               createdAt: new Date().toISOString(),
-            };
+            }
 
-            const updatedLayouts = [...savedLayouts, newLayout];
-            await AsyncStorage.setItem("savedLayouts", JSON.stringify(updatedLayouts));
-            setSavedLayouts(updatedLayouts);
-            setShowSaveLayoutModal(false);
-            setLayoutName("");
-            Alert.alert("Sucesso", "Layout salvo com sucesso!");
+            const updatedLayouts = [...savedLayouts, newLayout]
+            await AsyncStorage.setItem("savedLayouts", JSON.stringify(updatedLayouts))
+            setSavedLayouts(updatedLayouts)
+            setShowSaveLayoutModal(false)
+            setLayoutName("")
+            Alert.alert("Sucesso", "Layout salvo com sucesso!")
           } catch (error) {
-            console.error("Erro ao salvar layout:", error);
-            Alert.alert("Erro", "Não foi possível salvar o layout.");
+            console.error("Erro ao salvar layout:", error)
+            Alert.alert("Erro", "Não foi possível salvar o layout.")
           }
         }}
         onNameChange={setLayoutName}
       />
-      
+
       <MotoSelectionModal
         visible={showMotoSelectionModal}
-        motorcycles={motorcycles.filter(m => m.status !== "out" && !m.beaconId)}
+        motorcycles={motorcycles.filter((m) => m.status !== "out" && !m.beaconId)}
         onClose={() => {
-          setShowMotoSelectionModal(false);
-          setIsPlacementMode(false);
-          setPlacementPosition(null);
+          setShowMotoSelectionModal(false)
+          setIsPlacementMode(false)
+          setPlacementPosition(null)
         }}
         onSelectMoto={placeMotorcycle}
       />
@@ -855,28 +704,28 @@ const MappingScreen = () => {
         onRequestClose={() => setShowLayoutsModal(false)}
       >
         <Pressable
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}
           onPress={() => setShowLayoutsModal(false)}
         >
-          <View 
-            style={{ 
-              width: '80%', 
-              backgroundColor: theme.colors.white, 
-              borderRadius: 8, 
+          <View
+            style={{
+              width: "80%",
+              backgroundColor: theme.colors.white,
+              borderRadius: 8,
               padding: 16,
-              maxHeight: '70%'
+              maxHeight: "70%",
             }}
             onStartShouldSetResponder={() => true}
           >
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>Layouts Salvos</Text>
-            
+            <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 16 }}>Layouts Salvos</Text>
+
             {savedLayouts.length === 0 ? (
-              <Text style={{ color: theme.colors.gray[500], textAlign: 'center', padding: 20 }}>
+              <Text style={{ color: theme.colors.gray[500], textAlign: "center", padding: 20 }}>
                 Nenhum layout salvo encontrado
               </Text>
             ) : (
               <ScrollView style={{ maxHeight: 300 }}>
-                {savedLayouts.map(layout => (
+                {savedLayouts.map((layout) => (
                   <TouchableOpacity
                     key={layout.id}
                     style={{
@@ -890,12 +739,12 @@ const MappingScreen = () => {
                         zones: layout.zones,
                         gridVisible: layout.gridVisible,
                         gridSize: layout.gridSize,
-                      });
-                      setShowLayoutsModal(false);
-                      Alert.alert("Sucesso", "Layout carregado com sucesso!");
+                      })
+                      setShowLayoutsModal(false)
+                      Alert.alert("Sucesso", "Layout carregado com sucesso!")
                     }}
                   >
-                    <Text style={{ fontWeight: 'bold' }}>{layout.name}</Text>
+                    <Text style={{ fontWeight: "bold" }}>{layout.name}</Text>
                     <Text style={{ fontSize: 12, color: theme.colors.gray[500] }}>
                       {new Date(layout.createdAt).toLocaleString()}
                     </Text>
@@ -903,10 +752,10 @@ const MappingScreen = () => {
                 ))}
               </ScrollView>
             )}
-            
+
             <TouchableOpacity
               style={{
-                alignSelf: 'flex-end',
+                alignSelf: "flex-end",
                 marginTop: 16,
                 backgroundColor: theme.colors.primary[500],
                 padding: 8,
@@ -919,7 +768,6 @@ const MappingScreen = () => {
           </View>
         </Pressable>
       </Modal>
-<<<<<<< HEAD
 
       {/* Modal para selecionar beacon */}
       <BeaconSelectionModal
@@ -942,20 +790,9 @@ const MappingScreen = () => {
           }
         }}
       />
-      <UserModal
-        visible={showUserModal}
-        onClose={() => setShowUserModal(false)}
-        currentUser={currentUser}
-        users={users}
-        onSwitchUser={handleSwitchUser}
-        onAddUser={handleAddUser}
-        onDeleteUser={handleDeleteUser}
-      />
-=======
->>>>>>> parent of 86c1a8a (alterçaãi)
     </SafeAreaView>
-  );
-};
+  )
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -980,6 +817,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginLeft: 8,
   },
-});
+})
 
-export default MappingScreen;
+export default MappingScreen

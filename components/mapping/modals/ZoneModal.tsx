@@ -22,6 +22,7 @@ const ZoneModal: React.FC<ZoneModalProps> = ({
   visible,
   editingZoneId,
   zoneName,
+  zoneColor,
   onClose,
   onSave,
   onNameChange,
@@ -54,7 +55,6 @@ const ZoneModal: React.FC<ZoneModalProps> = ({
         <View style={[styles.modalView, { backgroundColor: theme.colors.white }]}>
           <Text style={[styles.modalTitle, { color: theme.colors.gray[900] }]}>
             {editingZoneId ? 'Editar Zona' : 'Nova Zona'}
-            {editingZoneId ? 'Editar Zona' : 'Nova Zona'}
           </Text>
           
           <TextInput
@@ -63,7 +63,6 @@ const ZoneModal: React.FC<ZoneModalProps> = ({
               { 
                 borderColor: theme.colors.gray[300],
                 color: theme.colors.gray[900],
-              }
               }
             ]}
             value={zoneName}
@@ -126,8 +125,6 @@ const ZoneModal: React.FC<ZoneModalProps> = ({
         </View>
       </View>
     </Modal>
-  );
-};
   );
 };
 
@@ -203,5 +200,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ZoneModal;
 export default ZoneModal;
