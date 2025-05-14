@@ -1,273 +1,222 @@
-import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Pressable } from 'react-native';
-import { Trash2, Edit, Copy, Move, Maximize } from 'lucide-react-native';
-import { useTheme } from '@/contexts/ThemeContext';
-import { Zone } from '@/hooks/useZoneDrag';
-import { useZoneDrag } from '@/hooks/useZoneDrag';
-import { useZoneResize } from '@/hooks/useZoneResize';
+// Arquivo: components/ZoneComponent.tsx (atualizado)
 
-interface ZoneComponentProps {
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ViewStyle } from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Feather } from '@expo/vector-icons';
+
+// Interface de Zona
+export interface Zone {
+  id: string;
+  name: string;
+  color?: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  width: number;
+  height: number;
+  parentId?: string;
+}
+
+// Props do componente
+export interface ZoneComponentProps {
   zone: Zone;
-  isSelected: boolean;
-  isEditMode: boolean;
-  onSelect: (zoneId: string) => void;
-  onUpdate: (zone: Zone) => void;
-  onDelete: (zoneId: string) => void;
-  onDuplicate: (zone: Zone) => void;
+  selected?: boolean;
+  motorcyclesCount?: number;
+  beaconsCount?: number;
+  capacity?: number;
+  style?: ViewStyle;
+  onPress?: () => void;
+  onDrag?: (id: string, position: { x: number; y: number }) => void;
+  onResize?: (id: string, width: number, height: number) => void;
 }
 
 export const ZoneComponent: React.FC<ZoneComponentProps> = ({
   zone,
-  isSelected,
-  isEditMode,
-  onSelect,
-  onUpdate,
-  onDelete,
-  onDuplicate
+  selected = false,
+  motorcyclesCount = 0,
+  beaconsCount = 0,
+  capacity = 10, // Capacidade padrão
+  style,
+  onPress,
+  onDrag,
+  onResize
 }) => {
   const { theme } = useTheme();
-  const [showControls, setShowControls] = useState(false);
-  const [activeResizeHandle, setActiveResizeHandle] = useState<string | null>(null);
-
-  // Hook para arrastar a zona
-  const { panHandlers: dragPanHandlers } = useZoneDrag(zone, onUpdate);
   
-  // Hooks para redimensionar a zona em diferentes direções
-  const { panHandlers: topLeftResizeHandlers } = useZoneResize(zone, 'topLeft', onUpdate);
-  const { panHandlers: topRightResizeHandlers } = useZoneResize(zone, 'topRight', onUpdate);
-  const { panHandlers: bottomLeftResizeHandlers } = useZoneResize(zone, 'bottomLeft', onUpdate);
-  const { panHandlers: bottomRightResizeHandlers } = useZoneResize(zone, 'bottomRight', onUpdate);
-
-  // Converte valores de posição para números
-  const parsePercentage = (value: string): number => {
-    return parseFloat(value.replace('%', ''));
+  // Calcula a ocupação em porcentagem
+  const occupancyPercentage = Math.min(100, Math.round((motorcyclesCount / capacity) * 100));
+  
+  // Define a cor de fundo do contador de ocupação
+  const getOccupancyColor = () => {
+    if (occupancyPercentage < 50) return theme.colors.primary[500]; // Verde-azulado
+    if (occupancyPercentage < 80) return theme.colors.warning[500]; // Amarelo
+    return theme.colors.error[500]; // Vermelho
   };
-
-  // Posição e tamanho da zona
-  const zoneStyle = useMemo(() => ({
-    position: 'absolute' as const,
-    top: zone.position.top,
-    left: zone.position.left,
-    width: zone.position.width,
-    height: zone.position.height,
-    backgroundColor: `${zone.color}80`, // 50% de opacidade
-    borderColor: zone.color,
-    borderWidth: 2,
+  
+  // Posição e dimensões
+  const zoneStyle: ViewStyle = {
+    position: 'relative',
+    width: zone.width,
+    height: zone.height,
+    backgroundColor: zone.color || theme.colors.primary[500],
+    opacity: 0.8,
+    borderWidth: selected ? 2 : 1,
+    borderColor: selected ? theme.colors.white : 'rgba(255,255,255,0.5)',
     borderRadius: 8,
-    opacity: zone.isMoving || zone.isResizing ? 0.7 : 1,
-    zIndex: isSelected ? 10 : 5
-  }), [zone, isSelected]);
-
-  const handleLongPress = () => {
-    if (isEditMode) {
-      setShowControls(true);
-    }
+    padding: 8,
+    justifyContent: 'space-between',
+    ...style
   };
 
   return (
-    <View style={zoneStyle}>
-      {/* Área principal da zona */}
-      <TouchableOpacity
-        style={styles.zoneMain}
-        onPress={() => onSelect(zone.id)}
-        onLongPress={handleLongPress}
-        delayLongPress={500}
-        {...(isEditMode ? dragPanHandlers : {})}
-      >
-        <Text style={[
-          styles.zoneLabel,
-          { color: theme.colors.white, textShadowColor: 'rgba(0, 0, 0, 0.5)' }
-        ]}>
-          {zone.name}
-        </Text>
-      </TouchableOpacity>
-
-      {/* Alças de redimensionamento */}
-      {isEditMode && (
-        <>
-          <Pressable
-            style={[styles.resizeHandle, styles.topLeftHandle]}
-            onPressIn={() => setActiveResizeHandle('topLeft')}
-            onPressOut={() => setActiveResizeHandle(null)}
-            {...topLeftResizeHandlers}
-          />
-          <Pressable
-            style={[styles.resizeHandle, styles.topRightHandle]}
-            onPressIn={() => setActiveResizeHandle('topRight')}
-            onPressOut={() => setActiveResizeHandle(null)}
-            {...topRightResizeHandlers}
-          />
-          <Pressable
-            style={[styles.resizeHandle, styles.bottomLeftHandle]}
-            onPressIn={() => setActiveResizeHandle('bottomLeft')}
-            onPressOut={() => setActiveResizeHandle(null)}
-            {...bottomLeftResizeHandlers}
-          />
-          <Pressable
-            style={[styles.resizeHandle, styles.bottomRightHandle]}
-            onPressIn={() => setActiveResizeHandle('bottomRight')}
-            onPressOut={() => setActiveResizeHandle(null)}
-            {...bottomRightResizeHandlers}
-          />
-        </>
-      )}
-
-      {/* Controles de zona (mostrados após long press) */}
-      {isEditMode && showControls && (
-        <View style={styles.zoneControls}>
-          {/* Botão de Editar */}
+    <TouchableOpacity 
+      style={zoneStyle}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
+      {/* Cabeçalho da zona com nome */}
+      <Text style={styles.zoneName}>{zone.name}</Text>
+      
+      {/* Contador de ocupação no canto superior direito */}
+      <View style={[styles.occupancyBadge, { backgroundColor: getOccupancyColor() }]}>
+        <Text style={styles.occupancyText}>{motorcyclesCount}</Text>
+      </View>
+      
+      {/* Exibição de contagem de motos e beacons com ícones */}
+      <View style={styles.statsContainer}>
+        {/* Contador de motos */}
+        <View style={styles.statItem}>
+          <Feather name="truck" size={16} color="#fff" />
+          <Text style={styles.statValue}>{motorcyclesCount}</Text>
+        </View>
+        
+        {/* Contador de beacons */}
+        <View style={styles.statItem}>
+          <Feather name="bluetooth" size={16} color="#fff" />
+          <Text style={styles.statValue}>{beaconsCount}</Text>
+        </View>
+      </View>
+      
+      {/* Barra de progresso de ocupação */}
+      <View style={styles.progressBarContainer}>
+        <View style={[styles.progressBar, { width: `${occupancyPercentage}%`, backgroundColor: getOccupancyColor() }]} />
+        <Text style={styles.progressText}>{occupancyPercentage}%</Text>
+      </View>
+      
+      {/* Controles de edição (visíveis somente se selecionado) */}
+      {selected && onDrag && onResize && (
+        <View style={styles.editControls}>
+          {/* Handle de arrastar */}
           <TouchableOpacity 
-            style={[styles.controlButton, { backgroundColor: theme.colors.primary[500] }]}
-            onPress={() => {
-              setShowControls(false);
-              // Aqui você pode implementar a lógica para editar/renomear a zona
+            style={[styles.dragHandle, { backgroundColor: theme.colors.primary[700] }]}
+            onPressIn={() => {
+              // Iniciar arrastar
+              console.log(`Iniciando arrasto da zona ${zone.id}`);
             }}
           >
-            <Edit size={16} color="#fff" />
+            <Feather name="move" size={14} color="#fff" />
           </TouchableOpacity>
           
-          {/* Botão de Duplicar */}
+          {/* Handle de redimensionar */}
           <TouchableOpacity 
-            style={[styles.controlButton, { backgroundColor: theme.colors.secondary[500] }]}
-            onPress={() => {
-              setShowControls(false);
-              onDuplicate(zone);
+            style={[styles.resizeHandle, { backgroundColor: theme.colors.primary[700] }]}
+            onPressIn={() => {
+              // Iniciar redimensionamento
+              console.log(`Iniciando redimensionamento da zona ${zone.id}`);
             }}
           >
-            <Copy size={16} color="#fff" />
-          </TouchableOpacity>
-          
-          {/* Botão de Excluir */}
-          <TouchableOpacity 
-            style={[styles.controlButton, { backgroundColor: theme.colors.error[500] }]}
-            onPress={() => {
-              setShowControls(false);
-              onDelete(zone.id);
-            }}
-          >
-            <Trash2 size={16} color="#fff" />
-          </TouchableOpacity>
-          
-          {/* Botão de fechar controles */}
-          <TouchableOpacity 
-            style={[styles.closeButton, { backgroundColor: theme.colors.gray[800] }]}
-            onPress={() => setShowControls(false)}
-          >
-            <Text style={{ color: '#fff', fontSize: 12 }}>✕</Text>
+            <Feather name="maximize-2" size={14} color="#fff" />
           </TouchableOpacity>
         </View>
       )}
-
-      {/* Indicador de zona selecionada */}
-      {isSelected && !isEditMode && (
-        <View style={[
-          styles.selectedIndicator,
-          { borderColor: theme.colors.primary[500] }
-        ]} />
-      )}
-
-      {/* Indicador de tamanho (mostrado durante o redimensionamento) */}
-      {activeResizeHandle && (
-        <View style={[styles.sizeIndicator, { backgroundColor: theme.colors.gray[800] }]}>
-          <Text style={styles.sizeText}>
-            {parsePercentage(zone.position.width).toFixed(0)}% × {parsePercentage(zone.position.height).toFixed(0)}%
-          </Text>
-        </View>
-      )}
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
-  zoneMain: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    width: '100%',
-    height: '100%',
-  },
-  zoneLabel: {
-    fontFamily: 'Poppins-Medium',
+  zoneName: {
+    color: '#fff',
+    fontWeight: 'bold',
     fontSize: 14,
-    textShadowRadius: 2,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
     textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
-  zoneControls: {
+  occupancyBadge: {
     position: 'absolute',
-    top: -40,
-    right: 0,
+    top: 8,
+    right: 8,
+    minWidth: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  occupancyText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  statsContainer: {
     flexDirection: 'row',
-    padding: 4,
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
-    borderRadius: 4,
-    zIndex: 100,
-  },
-  controlButton: {
-    width: 30,
-    height: 30,
     justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 4,
-    marginHorizontal: 2,
+    marginVertical: 8,
   },
-  closeButton: {
-    width: 20,
-    height: 20,
-    justifyContent: 'center',
+  statItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    marginHorizontal: 4,
+  },
+  statValue: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
     marginLeft: 4,
   },
-  selectedIndicator: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    right: -2,
-    bottom: -2,
-    borderWidth: 2,
-    borderRadius: 10,
-    borderStyle: 'dashed',
+  progressBarContainer: {
+    height: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    borderRadius: 4,
+    overflow: 'hidden',
+    position: 'relative',
   },
-  resizeHandle: {
-    position: 'absolute',
-    width: 20,
-    height: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    zIndex: 20,
-  },
-  topLeftHandle: {
-    top: -10,
-    left: -10,
-    cursor: 'nwse-resize',
-  },
-  topRightHandle: {
-    top: -10,
-    right: -10,
-    cursor: 'nesw-resize',
-  },
-  bottomLeftHandle: {
-    bottom: -10,
-    left: -10,
-    cursor: 'nesw-resize',
-  },
-  bottomRightHandle: {
-    bottom: -10,
-    right: -10,
-    cursor: 'nwse-resize',
-  },
-  sizeIndicator: {
-    position: 'absolute',
-    bottom: -25,
-    right: 0,
-    padding: 2,
+  progressBar: {
+    height: '100%',
     borderRadius: 4,
   },
-  sizeText: {
-    color: '#fff',
+  progressText: {
+    position: 'absolute',
+    top: -16,
+    right: 0,
     fontSize: 10,
-    fontFamily: 'Poppins-Regular',
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  editControls: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    flexDirection: 'row'
+  },
+  dragHandle: {
+    width: 24,
+    height: 24,
+    borderTopLeftRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center'
+  },
+  resizeHandle: {
+    width: 24,
+    height: 24,
+    borderTopLeftRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center'
   }
 });

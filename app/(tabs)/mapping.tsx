@@ -1,847 +1,662 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Modal, Pressable, ScrollView } from "react-native"
-import { SafeAreaView } from "react-native-safe-area-context"
-import AsyncStorage from "@react-native-async-storage/async-storage"
-import * as ImagePicker from "expo-image-picker"
-import { RefreshCcw, Layers, Edit } from "lucide-react-native"
-
-// Componentes
-import MapContainer from "@/components/mapping/MapContainer"
-import MapView from "@/components/mapping/MapView/MapView"
-import BeaconMarkers from "@/components/mapping/MapView/BeaconMarkers"
-import MotorcycleMarkers from "@/components/mapping/MapView/MotorcycleMarkers"
-import ZonesOverlay from "@/components/mapping/MapView/ZonesOverlay"
-import HeatmapOverlay from "@/components/HeatmapOverlay"
-import TimelineOverlay from "@/components/mapping/MapView/TimelineOverlay"
-import MapControls from "@/components/mapping/controls/MapControls"
-import { EditToolbar } from "@/components/mapping/controls"
-import InfoPanel from "@/components/mapping/controls/InfoPanel"
-import ZoneModal from "@/components/mapping/modals/ZoneModal"
-import LayoutModal from "@/components/mapping/modals/LayoutModal"
-import MotoSelectionModal from "@/components/mapping/modals/MotoSelectionModal"
-
-// Vamos importar o novo componente e usar ele no lugar do código inline
-// Adicione esta importação no topo do arquivo
-import BeaconSelectionModal from "@/components/mapping/modals/BeaconSelectionModal"
-
-// Hooks e Contextos
+import React, { useState, useEffect, useRef } from "react"
+import { View, Text, StyleSheet, TouchableOpacity, Animated, Alert } from "react-native"
+import { Feather } from "@expo/vector-icons"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useLocalization } from "@/contexts/LocalizationContext"
-import { useScan } from "@/contexts/ScanContext"
-import { useHistory } from "@/contexts/HistoryContext"
-import { useMapGestures } from "@/hooks/useMapGestures"
-import { useBeaconFiltering } from "@/hooks/useBeaconFiltering"
+import { useMockData } from "@/hooks/useMockData"
+import { ZoneCounter } from "@/components/ZoneCounter"
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// Componentes adicionais
-import BeaconInfoPanel from "@/components/BeaconInfoPanel"
-import BeaconList from "@/components/BeaconList"
-
-// Tipos
-import type { MapConfig, MarkerPosition, MapViewMode } from "@/components/mapping/types"
-
-// Agora vamos implementar a associação real de beacons a motos
-
-// Primeiro, vamos importar os hooks necessários
-import { useBeacons } from "@/hooks/useBeacons"
-import { useMotorcycles } from "@/hooks/useMotorcycles"
-
-// Importar utilitários para detectar zonas
-import { findZoneForPoint } from "@/components/mapping/utils/PositionUtils"
-
-const MappingScreen = () => {
-  // Hooks de contexto
-  const { theme } = useTheme()
-  const { t } = useLocalization()
-  // Agora, vamos modificar a desestruturação dos hooks para incluir as novas funções
-  const { beacons, saveBeacon } = useBeacons()
-const { motorcycles, saveMotorcycle } = useMotorcycles()
-
-// Criar funções para associar beacons e motos
-const associateBeacon = (beaconId: string, motoId: string | null) => {
-  const beacon = beacons.find(b => b.id === beaconId);
-  if (beacon) {
-    saveBeacon({ ...beacon, motoId });
-  }
-};
-
-const associateMoto = (motoId: string, beaconId: string | null) => {
-  const moto = motorcycles.find(m => m.id === motoId);
-  if (moto) {
-    saveMotorcycle({ ...moto, beaconId });
-  }
-};
-  const { isScanning, startScan } = useScan()
-  const { history } = useHistory()
-
-  // Estados do mapa
-  const [selectedBeacon, setSelectedBeacon] = useState<string | null>(null)
-  const [searchQuery] = useState("")
-  const [mapView, setMapView] = useState<MapViewMode>("normal")
-  // Removed unused state
-  const [selectedZone, setSelectedZone] = useState<string | null>(null)
-  const [showInfoPanel, setShowInfoPanel] = useState(true)
-  const [isEditMode, setIsEditMode] = useState(false)
-  const [isPlacementMode, setIsPlacementMode] = useState(false)
-  const [placementPosition, setPlacementPosition] = useState<{ x: number; y: number } | null>(null)
-  // Removed unused state declaration
-  const [isDrawMode, setIsDrawMode] = useState(false)
-  const [drawShape, setDrawShape] = useState<"circle" | "polygon" | undefined>(undefined)
-  const [drawPoints, setDrawPoints] = useState<{ x: number; y: number }[]>([])
-  const [markerPositions, setMarkerPositions] = useState<MarkerPosition[]>([])
-  const [savedLayouts, setSavedLayouts] = useState<any[]>([])
-
-  // Estados para modais
-  const [showZoneNameModal, setShowZoneNameModal] = useState(false)
-  const [showSaveLayoutModal, setShowSaveLayoutModal] = useState(false)
-  const [showLayoutsModal, setShowLayoutsModal] = useState(false)
-  const [showMotoSelectionModal, setShowMotoSelectionModal] = useState(false)
-  const [editingZoneId, setEditingZoneId] = useState<string | null>(null)
-  const [newZoneName, setNewZoneName] = useState("")
-  const [layoutName, setLayoutName] = useState("")
-  const [selectedZoneColor, setSelectedZoneColor] = useState(theme.colors.primary[300])
-
-  // Vamos modificar o componente de mapeamento para permitir associar beacons a motos
-
-  // Primeiro, vamos adicionar um novo estado para controlar o modal de seleção de beacon
-  const [showBeaconSelectionModal, setShowBeaconSelectionModal] = useState(false)
-  const [selectedMotoForBeacon, setSelectedMotoForBeacon] = useState<string | null>(null)
-
-  // Configuração inicial do mapa
-  const [mapConfig, setMapConfig] = useState<MapConfig>({
-    backgroundImage: null, // Removendo a imagem de fundo
-    backgroundColor: theme.colors.gray[100], // Adicionando cor de fundo
-    zones: [
-      {
-        id: "A",
-        name: t("mapping.zones.entrance"),
-        color: theme.colors.primary[300],
-        position: { top: "10%", left: "10%", width: "30%", height: "20%" },
-      },
-      {
-        id: "B",
-        name: t("mapping.zones.maintenance"),
-        color: theme.colors.secondary[300],
-        position: { top: "40%", left: "10%", width: "25%", height: "20%" },
-      },
-      {
-        id: "C",
-        name: t("mapping.zones.storage"),
-        color: theme.colors.success[300],
-        position: { top: "10%", left: "50%", width: "30%", height: "20%" },
-      },
-      {
-        id: "D",
-        name: t("mapping.zones.parking"),
-        color: theme.colors.warning[300],
-        position: { top: "40%", left: "50%", width: "25%", height: "30%" },
-      },
-    ],
-    gridVisible: true,
-    gridSize: 10,
-  })
-
-  // Referências
-  const mapWrapperRef = useRef<View>(null)
-
-  // Hooks personalizados
-  const { transformStyle, panHandlers, zoomIn, zoomOut, resetView } = useMapGestures({
-    initialScale: 1,
-    minScale: 0.5,
-    maxScale: 3,
-  })
-
-  // Filtragem de beacons
-  // Definindo um objeto vazio para beaconPositions
-  const beaconPositions = {}
-  const { filteredBeacons } = useBeaconFiltering(beacons, motorcycles, beaconPositions, searchQuery, null)
-
-  // Carregar dados iniciais
-  useEffect(() => {
-    loadSavedLayouts()
-    loadMarkerPositions()
-  }, [])
-
-  const loadSavedLayouts = async () => {
-    try {
-      const layouts = await AsyncStorage.getItem("savedLayouts")
-      if (layouts) setSavedLayouts(JSON.parse(layouts))
-    } catch (error) {
-      console.error("Erro ao carregar layouts:", error)
-    }
-  }
-
-  const loadMarkerPositions = async () => {
-    try {
-      const positions = await AsyncStorage.getItem("markerPositions")
-      if (positions) setMarkerPositions(JSON.parse(positions))
-    } catch (error) {
-      console.error("Erro ao carregar posições:", error)
-    }
-  }
-
-  const saveMarkerPositions = async (positions: MarkerPosition[]) => {
-    try {
-      await AsyncStorage.setItem("markerPositions", JSON.stringify(positions))
-    } catch (error) {
-      console.error("Erro ao salvar posições:", error)
-    }
-  }
-
-  // Funções de manipulação do mapa
-  const handleMapTap = (event: any) => {
-    if (isDrawMode) {
-      handleDrawTap(event)
-    } else if (isPlacementMode) {
-      handlePlacementTap(event)
-    }
-  }
-
-  const handleDrawTap = (event: any) => {
-    if (!isDrawMode || drawShape === undefined) return
-
-    const { locationX, locationY } = event.nativeEvent
-
-    mapWrapperRef.current?.measure((x, y, width, height, pageX, pageY) => {
-      const xPercent = (locationX / width) * 100
-      const yPercent = (locationY / height) * 100
-
-      const newPoint = { x: xPercent, y: yPercent }
-      setDrawPoints([...drawPoints, newPoint])
-
-      // Se for um polígono e tiver pelo menos 3 pontos, pode criar uma zona
-      if (drawShape === "polygon" && drawPoints.length >= 2) {
-        // Implemente aqui a criação de zona baseada em polígono
-        // Esta é uma implementação básica, você pode expandi-la conforme necessário
-      }
-    })
-  }
-
-  const handlePlacementTap = (event: any) => {
-    const { locationX, locationY } = event.nativeEvent
-
-    mapWrapperRef.current?.measure((x, y, width, height, pageX, pageY) => {
-      const xPercent = (locationX / width) * 100
-      const yPercent = (locationY / height) * 100
-
-      setPlacementPosition({ x: xPercent, y: yPercent })
-      setShowMotoSelectionModal(true)
-    })
-  }
-
-  const placeMotorcycle = (motoId: string) => {
-    if (!placementPosition) return
-
-    // Detectar em qual zona a moto está sendo colocada
-    const zoneId = findZoneForPoint(placementPosition, mapConfig.zones)
-
-    // Criar uma nova posição de marcador
-    const newMarkerPosition: MarkerPosition = {
-      id: motoId,
-      type: "motorcycle",
-      position: {
-        x: placementPosition.x,
-        y: placementPosition.y,
-      },
-      zoneId: zoneId,
-    }
-
-    // Atualizar as posições
-    const updatedPositions = markerPositions.filter((pos) => pos.id !== motoId)
-    updatedPositions.push(newMarkerPosition)
-
-    setMarkerPositions(updatedPositions)
-    saveMarkerPositions(updatedPositions)
-
-    // Mostrar mensagem sobre a zona
-    if (zoneId) {
-      const zone = mapConfig.zones.find((z) => z.id === zoneId)
-      if (zone) {
-        Alert.alert("Moto posicionada", `A moto foi posicionada na zona: ${zone.name}`)
-      }
-    }
-
-    // Limpar o modo de colocação
-    setIsPlacementMode(false)
-    setPlacementPosition(null)
-    setShowMotoSelectionModal(false)
-  }
-
-  // Funções de zona
-  const handleCreateZone = () => {
-    setNewZoneName("")
-    setEditingZoneId(null)
-    setSelectedZoneColor(getRandomColor())
-    setShowZoneNameModal(true)
-  }
-
-  // Modificações para a função handleSaveZone no arquivo mapping.tsx
-
-const handleSaveZone = () => {
-  if (!newZoneName.trim()) {
-    Alert.alert("Erro", "O nome da zona não pode estar vazio.")
-    return
-  }
-
-  if (editingZoneId) {
-    // Editar zona existente
-    setMapConfig((prev) => ({
-      ...prev,
-      zones: prev.zones.map((zone) =>
-        zone.id === editingZoneId ? { ...zone, name: newZoneName, color: selectedZoneColor } : zone,
-      ),
-    }))
-  } else {
-    // Criar nova zona com ID mais amigável
-    // Encontre a próxima letra disponível para ID
-    const existingIds = mapConfig.zones.map(zone => zone.id);
-    let newId = '';
-    
-    // Tente encontrar a próxima letra disponível (após D)
-    for (let charCode = 'E'.charCodeAt(0); charCode <= 'Z'.charCodeAt(0); charCode++) {
-      const nextId = String.fromCharCode(charCode);
-      if (!existingIds.includes(nextId)) {
-        newId = nextId;
-        break;
-      }
-    }
-    
-    // Se todas as letras estiverem usadas, use um número
-    if (!newId) {
-      let counter = 1;
-      while (!newId) {
-        const nextId = `${counter}`;
-        if (!existingIds.includes(nextId)) {
-          newId = nextId;
-        }
-        counter++;
-      }
-    }
-
-    setMapConfig((prev) => ({
-      ...prev,
-      zones: [
-        ...prev.zones,
-        {
-          id: newId, // Usando o novo ID mais amigável
-          name: newZoneName,
-          color: selectedZoneColor,
-          position: { top: "30%", left: "30%", width: "20%", height: "20%" },
-        },
-      ],
-    }))
-  }
-
-  setShowZoneNameModal(false)
+// Interface para movimentos
+interface Movement {
+  id: string
+  motoId: string
+  motoModel: string
+  motoPlate?: string
+  fromZoneId: string
+  toZoneId: string
+  timestamp: Date
+  beaconId?: string
 }
 
-  const getRandomColor = () => {
-    // Using imported generateRandomColor function from MapCalculations
-    const colors = [
-      theme.colors.primary[300],
-      theme.colors.secondary[300],
-      theme.colors.success[300],
-      theme.colors.warning[300],
-      theme.colors.error[300],
-    ]
-    return colors[Math.floor(Math.random() * colors.length)]
+// Interface para zonas
+interface Zone {
+  id: string
+  name: string
+  color?: string
+  position: {
+    x: number
+    y: number
+  }
+  width: number
+  height: number
+}
+
+// Adicione esta função para obter zonas simuladas
+const getMockZones = (): Zone[] => {
+  return [
+    { 
+      id: 'zone-1', 
+      name: 'Entrada (A)', 
+      color: '#3B82F6',
+      position: { x: 20, y: 20 },
+      width: 280,
+      height: 120
+    },
+    { 
+      id: 'zone-2', 
+      name: 'Manutenção (B)', 
+      color: '#10B981',
+      position: { x: 20, y: 160 },
+      width: 280,
+      height: 120 
+    },
+    { 
+      id: 'zone-3', 
+      name: 'Armazenamento (C)', 
+      color: '#6366F1',
+      position: { x: 320, y: 20 },
+      width: 280,
+      height: 120
+    },
+    { 
+      id: 'zone-4', 
+      name: 'Estacionamento (D)', 
+      color: '#F59E0B',
+      position: { x: 320, y: 160 },
+      width: 280,
+      height: 120
+    },
+    { 
+      id: 'zone-5', 
+      name: 'Loja (E)', 
+      color: '#8B5A2B',
+      position: { x: 170, y: 100 },
+      width: 280,
+      height: 100
+    }
+  ];
+}
+
+export default function MappingScreen() {
+  const { motorcycles, beacons } = useMockData()
+  const { theme } = useTheme()
+  const { t } = useLocalization()
+
+  // Estados
+  const [selectedZone, setSelectedZone] = useState<string | null>(null)
+  const [movements, setMovements] = useState<Movement[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [showBeacons, setShowBeacons] = useState(true)
+  const [showMotorcycles, setShowMotorcycles] = useState(true)
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const [showDetails, setShowDetails] = useState(false)
+  const [movingMoto, setMovingMoto] = useState<string | null>(null)
+  
+  // Referências para animação
+  const animationRef = useRef(new Animated.Value(0)).current
+  
+  // Dados simulados para zonas
+  const zones = getMockZones()
+  const MOVEMENTS_STORAGE_KEY = '@navmotu:movements';
+  
+  // Carregar movimentações ao iniciar
+  useEffect(() => {
+    if (isLoading) {
+      loadMovements();
+    }
+  }, [isLoading]);
+  
+  // Carregar movimentações do AsyncStorage
+  const loadMovements = async () => {
+    if (!isLoading) return;
+    
+    try {
+      const savedMovements = await AsyncStorage.getItem(MOVEMENTS_STORAGE_KEY);
+      if (savedMovements) {
+        const parsedMovements: Movement[] = JSON.parse(savedMovements).map((m: any) => ({
+          ...m,
+          timestamp: new Date(m.timestamp)
+        }));
+        
+        setMovements(parsedMovements);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar movimentações:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Salvar nova movimentação
+  const saveMovement = async (newMovement: Movement) => {
+    const updatedMovements = [newMovement, ...movements];
+    setMovements(updatedMovements);
+    
+    try {
+      await AsyncStorage.setItem(MOVEMENTS_STORAGE_KEY, JSON.stringify(updatedMovements));
+    } catch (error) {
+      console.error('Erro ao salvar movimentações:', error);
+    }
+  };
+  
+  // Contar motos em cada zona
+  const getMotorcyclesInZone = (zoneId: string): number => {
+    return motorcycles.filter(moto => 
+      (moto as any).location === zoneId || (moto as any).area === zoneId || (moto as any).zoneId === zoneId
+    ).length
+  }
+  
+  // Contar beacons em cada zona
+  const getBeaconsInZone = (zoneId: string): number => {
+    return beacons.filter(beacon => {
+      const associatedMoto = motorcycles.find(moto => moto.beaconId === beacon.id)
+      return associatedMoto && ((associatedMoto as any).location === zoneId || 
+                               (associatedMoto as any).area === zoneId || 
+                               (associatedMoto as any).zoneId === zoneId)
+    }).length
+  }
+  
+  // Obter zona pelo ID
+  const getZoneById = (zoneId: string): Zone | undefined => {
+    return zones.find(z => z.id === zoneId)
+  }
+  
+  // Manipular clique na zona
+  const handleZoneClick = (zoneId: string) => {
+    // Se já houver uma zona selecionada, criar movimentação
+    if (selectedZone && selectedZone !== zoneId) {
+      const fromZone = getZoneById(selectedZone);
+      const toZone = getZoneById(zoneId);
+      
+      if (fromZone && toZone) {
+        // Selecionar moto aleatória
+        const randomMoto = motorcycles[Math.floor(Math.random() * motorcycles.length)];
+        
+        // Criar novo movimento
+        const newMovement: Movement = {
+          id: `mov-${Date.now()}`,
+          motoId: randomMoto.id,
+          motoModel: randomMoto.model,
+          motoPlate: (randomMoto as any).licensePlate || (randomMoto as any).plate,
+          fromZoneId: selectedZone,
+          toZoneId: zoneId,
+          timestamp: new Date(),
+          beaconId: randomMoto.beaconId || undefined,
+        };
+        
+        // Iniciar animação
+        setMovingMoto(randomMoto.id);
+        animateMotoMovement(fromZone, toZone, () => {
+          // Salvar movimentação após a animação
+          saveMovement(newMovement);
+          setMovingMoto(null);
+          
+          // Mostrar alerta
+          Alert.alert(
+            "Moto Movida",
+            `${randomMoto.model} movida de ${fromZone.name} para ${toZone.name}`,
+            [{ text: "OK" }]
+          );
+        });
+      }
+      
+      setSelectedZone(null);
+    } else {
+      // Alternar seleção da zona
+      setSelectedZone(zoneId === selectedZone ? null : zoneId);
+      // Mostrar detalhes se selecionado
+      setShowDetails(zoneId !== selectedZone);
+    }
+  }
+  
+  // Animar movimento de motos entre zonas
+  const animateMotoMovement = (fromZone: Zone, toZone: Zone, onComplete: () => void) => {
+    // Resetar animação
+    animationRef.setValue(0);
+    
+    // Executar animação
+    Animated.timing(animationRef, {
+      toValue: 1,
+      duration: 1000,
+      useNativeDriver: false
+    }).start(() => {
+      onComplete();
+    });
+  }
+  
+  // Renderizar moto em movimento (animação)
+  const renderMovingMoto = () => {
+    if (!movingMoto || !selectedZone) return null;
+    
+    const fromZone = getZoneById(selectedZone);
+    const moto = motorcycles.find(m => m.id === movingMoto);
+    
+    if (!fromZone || !moto) return null;
+    
+    // Calcular posição interpolada para animação
+    const left = animationRef.interpolate({
+      inputRange: [0, 1],
+      outputRange: [fromZone.position.x + fromZone.width/2, selectedZone ? fromZone.position.x + 100 : fromZone.position.x]
+    });
+    
+    const top = animationRef.interpolate({
+      inputRange: [0, 1],
+      outputRange: [fromZone.position.y + fromZone.height/2, selectedZone ? fromZone.position.y + 60 : fromZone.position.y]
+    });
+    
+    return (
+      <Animated.View
+        style={{
+          position: 'absolute',
+          left,
+          top,
+          backgroundColor: theme.colors.primary[700],
+          borderRadius: 20,
+          padding: 8,
+          zIndex: 1000,
+        }}
+      >
+        <Feather name="truck" size={24} color="#fff" />
+      </Animated.View>
+    );
+  }
+  
+  // Aumentar zoom
+  const zoomIn = () => {
+    setZoomLevel(Math.min(zoomLevel + 0.2, 2));
+  }
+  
+  // Diminuir zoom
+  const zoomOut = () => {
+    setZoomLevel(Math.max(zoomLevel - 0.2, 0.6));
+  }
+  
+  // Resetar zoom
+  const resetZoom = () => {
+    setZoomLevel(1);
   }
 
-  const getZoneColorOptions = () => {
-    return [
-      { name: "Azul", value: theme.colors.primary[300] },
-      { name: "Ciano", value: theme.colors.secondary[300] },
-      { name: "Verde", value: theme.colors.success[300] },
-      { name: "Amarelo", value: theme.colors.warning[300] },
-      { name: "Vermelho", value: theme.colors.error[300] },
-      { name: "Roxo", value: "#9c27b0" },
-      { name: "Laranja", value: "#ff9800" },
-      { name: "Rosa", value: "#e91e63" },
-    ]
-  }
-
-  // Renderização principal
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.gray[50] }]} edges={["top"]}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: theme.colors.white }]}>
-        <Text style={[styles.title, { color: theme.colors.gray[900] }]}>{t("mapping.title")}</Text>
-        <View style={styles.headerButtons}>
-          {!isEditMode && (
-            <>
-              <TouchableOpacity
-                style={[styles.headerButton, { backgroundColor: theme.colors.secondary[500] }]}
-                onPress={() =>
-                  setMapView((prev) =>
-                    prev === "normal"
-                      ? "zones"
-                      : prev === "zones"
-                        ? "heatmap"
-                        : prev === "heatmap"
-                          ? "timeline"
-                          : "normal",
-                  )
-                }
-              >
-                <Layers size={18} color={theme.colors.white} />
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[
-                  styles.headerButton,
-                  { backgroundColor: theme.colors.primary[500] },
-                  isScanning && { backgroundColor: theme.colors.gray[400] },
-                ]}
-                onPress={() => startScan()}
-                disabled={isScanning}
-              >
-                <RefreshCcw size={18} color={theme.colors.white} />
-              </TouchableOpacity>
-            </>
-          )}
-          <TouchableOpacity
-            style={[
-              styles.headerButton,
-              { backgroundColor: isEditMode ? theme.colors.success[500] : theme.colors.warning[500] },
-            ]}
-            onPress={() => setIsEditMode(!isEditMode)}
+    <View style={styles.container}>
+      {/* Cabeçalho */}
+      <View style={[styles.header, { backgroundColor: theme.colors.gray[900] }]}>
+        <Text style={styles.headerTitle}>Mapeamento do Pátio</Text>
+        
+        <View style={styles.headerControls}>
+          <TouchableOpacity 
+            style={[styles.headerButton, showMotorcycles && { backgroundColor: theme.colors.primary[600] }]} 
+            onPress={() => setShowMotorcycles(!showMotorcycles)}
           >
-            <Edit size={18} color={theme.colors.white} />
+            <Feather name="truck" size={18} color="#fff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={[styles.headerButton, showBeacons && { backgroundColor: theme.colors.secondary[600] }]} 
+            onPress={() => setShowBeacons(!showBeacons)}
+          >
+            <Feather name="bluetooth" size={18} color="#fff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.headerButton}
+            onPress={() => Alert.alert("Adicionar", "Funcionalidade para adicionar nova zona")}
+          >
+            <Feather name="plus" size={18} color="#fff" />
           </TouchableOpacity>
         </View>
       </View>
-
-      {/* Barra de ferramentas de edição */}
-      {isEditMode && (
-        <EditToolbar
-          onCreateZone={handleCreateZone}
-          onStartDrawing={(shape) => {
-            setIsDrawMode(true)
-            setDrawShape(shape)
-            setDrawPoints([])
-          }}
-          onChangeBackground={() => {
-            Alert.alert("Alterar Fundo", "Escolha uma opção para o fundo do mapa", [
-              {
-                text: "Selecionar Imagem",
-                onPress: async () => {
-                  try {
-                    const result = await ImagePicker.launchImageLibraryAsync({
-                      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                      allowsEditing: true,
-                      quality: 1,
-                    })
-
-                    if (!result.canceled) {
-                      setMapConfig((prev) => ({
-                        ...prev,
-                        backgroundImage: { uri: result.assets[0].uri },
-                        backgroundColor: undefined, // ou use ""
-                      }))
-                    }
-                  } catch (error) {
-                    console.error("Erro ao selecionar imagem:", error)
-                    Alert.alert("Erro", "Não foi possível selecionar a imagem.")
-                  }
-                },
-              },
-              {
-                text: "Cor Sólida",
-                onPress: () => {
-                  const colors = [
-                    { name: "Branco", value: "#ffffff" },
-                    { name: "Cinza Claro", value: theme.colors.gray[100] },
-                    { name: "Cinza", value: theme.colors.gray[300] },
-                    { name: "Azul Claro", value: theme.colors.primary[100] },
-                    { name: "Verde Claro", value: theme.colors.success[100] },
-                  ]
-
-                  Alert.alert(
-                    "Selecionar Cor de Fundo",
-                    "Escolha uma cor para o fundo do mapa",
-                    colors.map((color) => ({
-                      text: color.name,
-                      onPress: () => {
-                        setMapConfig((prev) => ({
-                          ...prev,
-                          backgroundImage: null,
-                          backgroundColor: color.value,
-                        }))
-                      },
-                    })),
-                  )
-                },
-              },
-              { text: "Cancelar", style: "cancel" },
-            ])
-          }}
-          onToggleGrid={() =>
-            setMapConfig((prev) => ({
-              ...prev,
-              gridVisible: !prev.gridVisible,
-            }))
-          }
-          onSaveLayout={() => setShowSaveLayoutModal(true)}
-          onLoadLayout={() => setShowLayoutsModal(true)}
-          onCancelDrawing={() => {
-            setIsDrawMode(false)
-            setDrawShape(undefined)
-            setDrawPoints([])
-          }}
-          isDrawing={isDrawMode}
-          drawShape={drawShape}
-        />
-      )}
-
+      
       {/* Área principal do mapa */}
-      <MapContainer isEditMode={isEditMode}>
-        <MapView
-          ref={mapWrapperRef}
-          backgroundImage={mapConfig.backgroundImage}
-          backgroundColor={mapConfig.backgroundColor}
-          onPress={handleMapTap}
-          style={transformStyle}
-          {...(!isEditMode ? panHandlers : {})}
-        >
-          {/* Componentes do mapa */}
-          <BeaconMarkers
-            beacons={filteredBeacons}
-            markerPositions={markerPositions}
-            selectedBeacon={selectedBeacon}
-            onBeaconPress={(beaconId) => {
-              if (isEditMode) return
-              setSelectedBeacon(beaconId === selectedBeacon ? null : beaconId)
-            }}
-            motorcycles={motorcycles}
-          />
-
-          {/* Agora, vamos modificar a função que é chamada quando uma moto é pressionada */}
-          <MotorcycleMarkers
-            motorcycles={motorcycles}
-            beacons={beacons}
-            markerPositions={markerPositions}
-            onMotorcyclePress={(motoId) => {
-              if (isEditMode) return
-              const motorcycle = motorcycles.find((m) => m.id === motoId)
-              if (!motorcycle) return
-
-              const hasBeacon = motorcycle.beaconId !== null
-              const markerPosition = markerPositions.find((p) => p.id === motoId)
-              const zoneId = markerPosition?.zoneId
-              const zone = zoneId ? mapConfig.zones.find((z) => z.id === zoneId) : null
-
-              const zoneInfo = zone ? `\nZona: ${zone.name}` : "\nSem zona atribuída"
-              const beaconInfo = hasBeacon ? `\nBeacon: ${motorcycle.beaconId}` : "\nSem beacon associado"
-
-              Alert.alert(
-                `${motorcycle.model} (${motorcycle.licensePlate})`,
-                `Status: ${motorcycle.status}${zoneInfo}${beaconInfo}`,
-                [
-                  { text: "Fechar", style: "cancel" },
-                  {
-                    text: "Mover",
-                    onPress: () => {
-                      setIsPlacementMode(true)
-                    },
-                  },
-                  {
-                    text: hasBeacon ? "Remover Beacon" : "Adicionar Beacon",
-                    onPress: () => {
-                      if (hasBeacon && motorcycle.beaconId) {
-                        // Remover associação do beacon
-                        Alert.alert("Remover Beacon", "Tem certeza que deseja remover o beacon desta moto?", [
-                          { text: "Cancelar", style: "cancel" },
-                          {
-                            text: "Remover",
-                            style: "destructive",
-                            onPress: () => {
-                              // Remover a associação
-                              associateBeacon(motorcycle.beaconId!, null)
-                              associateMoto(motorcycle.id, null)
-
-                              Alert.alert("Beacon removido", "O beacon foi desassociado da moto.")
-                            },
-                          },
-                        ])
-                      } else {
-                        // Mostrar modal para selecionar um beacon
-                        setSelectedMotoForBeacon(motoId)
-                        setShowBeaconSelectionModal(true)
-                      }
-                    },
-                  },
-                ],
-              )
-            }}
-            zones={mapConfig.zones}
-          />
-
-          <ZonesOverlay
-            zones={mapConfig.zones}
-            selectedZone={selectedZone}
-            isEditMode={isEditMode}
-            onZonePress={(zoneId) => {
-              if (isEditMode) {
-                const zone = mapConfig.zones.find((z) => z.id === zoneId)
-                if (zone) {
-                  setNewZoneName(zone.name)
-                  setSelectedZoneColor(zone.color)
-                  setEditingZoneId(zone.id)
-                  setShowZoneNameModal(true)
-                }
-              } else {
-                setSelectedZone(zoneId === selectedZone ? null : zoneId)
-
-                // Mostrar motos nesta zona
-                const motosInZone = markerPositions
-                  .filter((pos) => pos.zoneId === zoneId && pos.type === "motorcycle")
-                  .map((pos) => motorcycles.find((m) => m.id === pos.id))
-                  .filter(Boolean)
-
-                if (motosInZone.length > 0) {
-                  const zone = mapConfig.zones.find((z) => z.id === zoneId)
-                  Alert.alert(
-                    `Motos na Zona ${zone?.name || zoneId}`,
-                    `Motos nesta zona: ${motosInZone.length}\n\n${motosInZone.map((m) => `- ${m?.model} (${m?.licensePlate})`).join("\n")}`,
-                  )
-                }
-              }
-            }}
-          />
-
-          {mapView === "heatmap" && (
-            <HeatmapOverlay beacons={filteredBeacons} zones={mapConfig.zones} markerPositions={markerPositions} />
-          )}
-
-          {mapView === "timeline" && (
-            <TimelineOverlay history={history} beacons={beacons} markerPositions={markerPositions} />
-          )}
-
-          {/* Controles do mapa */}
-          {!isEditMode && (
-            <MapControls
-              onZoomIn={zoomIn}
-              onZoomOut={zoomOut}
-              onResetView={resetView}
-              onTogglePlacement={() => setIsPlacementMode(!isPlacementMode)}
-              isPlacementMode={isPlacementMode}
-            />
-          )}
-        </MapView>
-      </MapContainer>
-
-      {/* Painel de informações */}
-      {!isEditMode && (
-        <InfoPanel isOpen={showInfoPanel} onToggle={() => setShowInfoPanel(!showInfoPanel)} title="Informações">
-          {/* Conteúdo do painel de informações */}
-          {selectedBeacon ? (
-            <BeaconInfoPanel
-              beacon={beacons.find((b) => b.id === selectedBeacon)}
-              onClose={() => setSelectedBeacon(null)}
-            />
-          ) : (
-            <BeaconList beacons={filteredBeacons} onSelectBeacon={setSelectedBeacon} selectedBeacon={selectedBeacon} />
-          )}
-        </InfoPanel>
-      )}
-
-      {/* Modals */}
-      <ZoneModal
-        visible={showZoneNameModal}
-        editingZoneId={editingZoneId}
-        zoneName={newZoneName}
-        onClose={() => setShowZoneNameModal(false)}
-        onSave={handleSaveZone}
-        onNameChange={setNewZoneName}
-        onDelete={() => {
-          if (editingZoneId) {
-            Alert.alert("Confirmar exclusão", "Tem certeza que deseja excluir esta zona?", [
-              { text: "Cancelar", style: "cancel" },
-              {
-                text: "Excluir",
-                style: "destructive",
-                onPress: () => {
-                  setMapConfig((prev) => ({
-                    ...prev,
-                    zones: prev.zones.filter((zone) => zone.id !== editingZoneId),
-                  }))
-                  setShowZoneNameModal(false)
-                },
-              },
-            ])
-          }
-        }}
-        zoneColor={selectedZoneColor}
-        onColorChange={setSelectedZoneColor}
-      />
-
-      <LayoutModal
-        visible={showSaveLayoutModal}
-        layoutName={layoutName}
-        onClose={() => setShowSaveLayoutModal(false)}
-        onSave={async () => {
-          if (!layoutName.trim()) {
-            Alert.alert("Erro", "O nome do layout não pode estar vazio.")
-            return
-          }
-
-          try {
-            const newLayout = {
-              id: Date.now().toString(),
-              name: layoutName,
-              backgroundImage: mapConfig.backgroundImage,
-              zones: mapConfig.zones,
-              gridVisible: mapConfig.gridVisible,
-              gridSize: mapConfig.gridSize,
-              createdAt: new Date().toISOString(),
+      <View style={styles.mapArea}>
+        {/* Controles de zoom */}
+        <View style={styles.zoomControls}>
+          <TouchableOpacity style={styles.zoomButton} onPress={zoomIn}>
+            <Feather name="plus" size={20} color="#fff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.zoomButton} onPress={zoomOut}>
+            <Feather name="minus" size={20} color="#fff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity style={styles.zoomButton} onPress={resetZoom}>
+            <Feather name="maximize" size={20} color="#fff" />
+          </TouchableOpacity>
+        </View>
+        
+        {/* Mapa das zonas */}
+        <Animated.View 
+          style={[
+            styles.mapContainer,
+            { 
+              transform: [
+                { scale: zoomLevel },
+              ]
             }
-
-            const updatedLayouts = [...savedLayouts, newLayout]
-            await AsyncStorage.setItem("savedLayouts", JSON.stringify(updatedLayouts))
-            setSavedLayouts(updatedLayouts)
-            setShowSaveLayoutModal(false)
-            setLayoutName("")
-            Alert.alert("Sucesso", "Layout salvo com sucesso!")
-          } catch (error) {
-            console.error("Erro ao salvar layout:", error)
-            Alert.alert("Erro", "Não foi possível salvar o layout.")
-          }
-        }}
-        onNameChange={setLayoutName}
-      />
-
-      <MotoSelectionModal
-        visible={showMotoSelectionModal}
-        motorcycles={motorcycles.filter((m) => m.status !== "out" && !m.beaconId)}
-        onClose={() => {
-          setShowMotoSelectionModal(false)
-          setIsPlacementMode(false)
-          setPlacementPosition(null)
-        }}
-        onSelectMoto={placeMotorcycle}
-      />
-
-      {/* Modal para carregar layouts salvos */}
-      <Modal
-        visible={showLayoutsModal}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setShowLayoutsModal(false)}
-      >
-        <Pressable
-          style={{ flex: 1, backgroundColor: "rgba(0,0,0,0.5)", justifyContent: "center", alignItems: "center" }}
-          onPress={() => setShowLayoutsModal(false)}
+          ]}
         >
-          <View
-            style={{
-              width: "80%",
-              backgroundColor: theme.colors.white,
-              borderRadius: 8,
-              padding: 16,
-              maxHeight: "70%",
-            }}
-            onStartShouldSetResponder={() => true}
-          >
-            <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 16 }}>Layouts Salvos</Text>
-
-            {savedLayouts.length === 0 ? (
-              <Text style={{ color: theme.colors.gray[500], textAlign: "center", padding: 20 }}>
-                Nenhum layout salvo encontrado
-              </Text>
-            ) : (
-              <ScrollView style={{ maxHeight: 300 }}>
-                {savedLayouts.map((layout) => (
-                  <TouchableOpacity
-                    key={layout.id}
-                    style={{
-                      padding: 12,
-                      borderBottomWidth: 1,
-                      borderBottomColor: theme.colors.gray[200],
-                    }}
-                    onPress={() => {
-                      setMapConfig({
-                        backgroundImage: layout.backgroundImage,
-                        zones: layout.zones,
-                        gridVisible: layout.gridVisible,
-                        gridSize: layout.gridSize,
-                      })
-                      setShowLayoutsModal(false)
-                      Alert.alert("Sucesso", "Layout carregado com sucesso!")
-                    }}
-                  >
-                    <Text style={{ fontWeight: "bold" }}>{layout.name}</Text>
-                    <Text style={{ fontSize: 12, color: theme.colors.gray[500] }}>
-                      {new Date(layout.createdAt).toLocaleString()}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-
-            <TouchableOpacity
-              style={{
-                alignSelf: "flex-end",
-                marginTop: 16,
-                backgroundColor: theme.colors.primary[500],
-                padding: 8,
-                borderRadius: 4,
-              }}
-              onPress={() => setShowLayoutsModal(false)}
+          {/* Renderizar zonas */}
+          {zones.map(zone => (
+            <TouchableOpacity 
+              key={zone.id}
+              style={[
+                styles.zone,
+                {
+                  left: zone.position.x,
+                  top: zone.position.y,
+                  width: zone.width,
+                  height: zone.height,
+                  backgroundColor: zone.color || theme.colors.primary[500],
+                  borderColor: zone.id === selectedZone ? '#fff' : 'transparent',
+                  borderWidth: zone.id === selectedZone ? 3 : 0,
+                }
+              ]}
+              onPress={() => handleZoneClick(zone.id)}
             >
-              <Text style={{ color: theme.colors.white }}>Fechar</Text>
+              <Text style={styles.zoneName}>{zone.name}</Text>
+              
+              <View style={styles.zoneInfo}>
+                {showMotorcycles && (
+                  <ZoneCounter 
+                    count={getMotorcyclesInZone(zone.id)} 
+                    icon="truck" 
+                    color="#f59e0b"
+                    backgroundColor="rgba(245, 158, 11, 0.2)"
+                  />
+                )}
+                
+                {showBeacons && (
+                  <ZoneCounter 
+                    count={getBeaconsInZone(zone.id)} 
+                    icon="bluetooth" 
+                    color="#3b82f6"
+                    backgroundColor="rgba(59, 130, 246, 0.2)"
+                  />
+                )}
+              </View>
+              
+              {/* Barra de ocupação */}
+              <View style={styles.occupancyContainer}>
+                <View 
+                  style={[
+                    styles.occupancyBar, 
+                    { 
+                      width: `${Math.min(100, (getMotorcyclesInZone(zone.id) / 10) * 100)}%`,
+                      backgroundColor: getMotorcyclesInZone(zone.id) > 7 ? '#ef4444' : '#10b981'
+                    }
+                  ]} 
+                />
+              </View>
+            </TouchableOpacity>
+          ))}
+          
+          {/* Renderizar moto em movimento (se houver) */}
+          {renderMovingMoto()}
+        </Animated.View>
+      </View>
+      
+      {/* Painel de detalhes (se uma zona estiver selecionada) */}
+      {showDetails && selectedZone && (
+        <View style={[styles.detailsPanel, { backgroundColor: theme.colors.gray[800] }]}>
+          <View style={styles.detailsHeader}>
+            <Text style={styles.detailsTitle}>
+              {getZoneById(selectedZone)?.name || 'Zona'}
+            </Text>
+            
+            <TouchableOpacity 
+              style={styles.closeButton}
+              onPress={() => setShowDetails(false)}
+            >
+              <Feather name="x" size={20} color="#fff" />
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Modal>
-
-      {/* Modal para selecionar beacon */}
-      <BeaconSelectionModal
-        visible={showBeaconSelectionModal}
-        beacons={beacons.filter((b) => !b.motoId)}
-        onClose={() => {
-          setShowBeaconSelectionModal(false)
-          setSelectedMotoForBeacon(null)
-        }}
-        onSelectBeacon={(beaconId) => {
-          if (selectedMotoForBeacon) {
-            // Associar o beacon à moto
-            associateBeacon(beaconId, selectedMotoForBeacon)
-            associateMoto(selectedMotoForBeacon, beaconId)
-
-            Alert.alert("Beacon associado", `O beacon ${beaconId} foi associado à moto.`)
-
-            setShowBeaconSelectionModal(false)
-            setSelectedMotoForBeacon(null)
-          }
-        }}
-      />
-    </SafeAreaView>
-  )
+          
+          <View style={styles.detailsContent}>
+            <View style={styles.detailsStat}>
+              <Feather name="truck" size={20} color="#fff" />
+              <Text style={styles.detailsStatValue}>
+                {getMotorcyclesInZone(selectedZone)}
+              </Text>
+              <Text style={styles.detailsStatLabel}>Motos</Text>
+            </View>
+            
+            <View style={styles.detailsStat}>
+              <Feather name="bluetooth" size={20} color="#fff" />
+              <Text style={styles.detailsStatValue}>
+                {getBeaconsInZone(selectedZone)}
+              </Text>
+              <Text style={styles.detailsStatLabel}>Beacons</Text>
+            </View>
+            
+            <View style={styles.detailsStat}>
+              <Feather name="percent" size={20} color="#fff" />
+              <Text style={styles.detailsStatValue}>
+                {Math.round((getMotorcyclesInZone(selectedZone) / 10) * 100)}%
+              </Text>
+              <Text style={styles.detailsStatLabel}>Ocupação</Text>
+            </View>
+          </View>
+          
+          <View style={styles.actionsRow}>
+            <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: theme.colors.primary[600] }]}
+              onPress={() => Alert.alert("Editar", `Editar zona ${getZoneById(selectedZone)?.name}`)}
+            >
+              <Feather name="edit" size={16} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.actionButtonText}>Editar</Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity 
+              style={[styles.actionButton, { backgroundColor: theme.colors.secondary[600] }]}
+              onPress={() => Alert.alert("Listar", `Listar motos em ${getZoneById(selectedZone)?.name}`)}
+            >
+              <Feather name="list" size={16} color="#fff" style={{ marginRight: 4 }} />
+              <Text style={styles.actionButtonText}>Listar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+      
+      {/* Rodapé com informações */}
+      <View style={[styles.footer, { backgroundColor: theme.colors.gray[900] }]}>
+        <View style={styles.footerContent}>
+          <Text style={styles.footerText}>
+            {isLoading ? 'Carregando...' : `${zones.length} zonas • ${motorcycles.length} motos • ${beacons.length} beacons`}
+          </Text>
+          
+          {selectedZone && (
+            <Text style={styles.footerText}>
+              Zona selecionada: {getZoneById(selectedZone)?.name || 'Desconhecida'}
+            </Text>
+          )}
+        </View>
+        
+        {beacons.some(b => b.status === 'active') && (
+          <View style={styles.beaconIndicator}>
+            <Feather name="bluetooth" size={16} color="#3b82f6" />
+            <Text style={[styles.beaconText, { color: '#3b82f6' }]}>
+              Beacon ativo
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: '#2A3040',
   },
   header: {
-    padding: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    borderBottomColor: '#1F2937',
   },
-  title: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 20,
+  headerTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
   },
-  headerButtons: {
-    flexDirection: "row",
+  headerControls: {
+    flexDirection: 'row',
   },
   headerButton: {
-    padding: 8,
-    borderRadius: 8,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#4B5563',
     marginLeft: 8,
   },
-})
-
-export default MappingScreen
+  mapArea: {
+    flex: 1,
+    position: 'relative',
+  },
+  zoomControls: {
+    position: 'absolute',
+    right: 16,
+    top: 16,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 8,
+    padding: 4,
+  },
+  zoomButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginVertical: 4,
+  },
+  mapContainer: {
+    flex: 1,
+    position: 'relative',
+  },
+  zone: {
+    position: 'absolute',
+    borderRadius: 8,
+    padding: 12,
+    justifyContent: 'space-between',
+  },
+  zoneName: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
+  },
+  zoneInfo: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  footer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: '#1F2937',
+  },
+  footerContent: {
+    flex: 1,
+  },
+  footerText: {
+    color: '#D1D5DB',
+    fontSize: 12,
+  },
+  beaconIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(59, 130, 246, 0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  beaconText: {
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  detailsPanel: {
+    position: 'absolute',
+    right: 16,
+    bottom: 80,
+    width: 300,
+    borderRadius: 8,
+    overflow: 'hidden',
+    elevation: 4,
+  },
+  detailsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1F2937',
+  },
+  detailsTitle: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  detailsContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+  },
+  detailsStat: {
+    alignItems: 'center',
+  },
+  detailsStatValue: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginTop: 4,
+  },
+  detailsStatLabel: {
+    color: '#9CA3AF',
+    fontSize: 12,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#1F2937',
+  },
+  actionButton: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 12,
+  },
+  actionButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  occupancyContainer: {
+    height: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    borderRadius: 2,
+    width: "100%",
+    marginTop: 8,
+    overflow: "hidden",
+  },
+  occupancyBar: {
+    height: "100%",
+    borderRadius: 2,
+  },
+});
