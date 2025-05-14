@@ -138,7 +138,8 @@ const ZonesOverlay: React.FC<ZonesOverlayProps> = ({
               disabled={movingZone === zone.id || resizingZone === zone.id}
             >
               <Text style={styles.zoneLabel}>
-                {zone.id}: {zone.name}
+                {zone.name}
+                <Text style={styles.zoneId}> ({zone.id})</Text>
               </Text>
             </TouchableOpacity>
             
@@ -184,6 +185,10 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2,
   },
+  zoneId: {
+    fontSize: 10,
+    opacity: 0.8,
+  },
   resizeHandle: {
     position: 'absolute',
     bottom: 0,
@@ -192,7 +197,7 @@ const styles = StyleSheet.create({
     height: 20,
     borderTopLeftRadius: 10,
     backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  }
+  },
 });
 
 export default ZonesOverlay;

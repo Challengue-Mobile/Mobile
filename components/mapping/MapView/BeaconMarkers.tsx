@@ -1,15 +1,10 @@
+// src/components/mapping/MapView/BeaconMarkers.tsx
+
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { Bluetooth, MapPin, Bike } from 'lucide-react-native'; // Alterando para o ícone Bike
+import { Bluetooth, MapPin, Navigation } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Beacon, Motorcycle } from '@/types';
-
-// Tipo para as opções do Alert
-type AlertOption = {
-  text: string;
-  onPress?: () => void;
-  style?: 'default' | 'cancel' | 'destructive';
-};
 
 interface BeaconMarkersProps {
   beacons: Beacon[];
@@ -43,13 +38,13 @@ const BeaconMarkers: React.FC<BeaconMarkersProps> = ({
     }
     
     // Criar opções para o diálogo
-    const options: AlertOption[] = availableMotos.map(moto => ({
+    const options = availableMotos.map(moto => ({
       text: `${moto.model} (${moto.licensePlate})`,
       onPress: () => onAssignToMoto(beacon.id, moto.id)
     }));
     
     // Adicionar opção para cancelar
-    options.push({ text: "Cancelar", style: "cancel" });
+    options.push({ text: "Cancelar", style: "cancel" } as any);
     
     // Mostrar diálogo
     Alert.alert(
@@ -94,10 +89,10 @@ const BeaconMarkers: React.FC<BeaconMarkersProps> = ({
               />
             )}
             
-            {/* Indicador de moto associada - usando o ícone Bike em vez de Motorcycle */}
+            {/* Indicador de moto associada */}
             {moto && (
               <View style={styles.motoIndicator}>
-                <Bike size={14} color={theme.colors.success[500]} />
+                <Navigation size={14} color={theme.colors.success[500]} />
               </View>
             )}
             

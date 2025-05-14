@@ -276,40 +276,65 @@ const associateMoto = (motoId: string, beaconId: string | null) => {
     setShowZoneNameModal(true)
   }
 
-  const handleSaveZone = () => {
-    if (!newZoneName.trim()) {
-      Alert.alert("Erro", "O nome da zona não pode estar vazio.")
-      return
-    }
+  // Modificações para a função handleSaveZone no arquivo mapping.tsx
 
-    if (editingZoneId) {
-      // Editar zona existente
-      setMapConfig((prev) => ({
-        ...prev,
-        zones: prev.zones.map((zone) =>
-          zone.id === editingZoneId ? { ...zone, name: newZoneName, color: selectedZoneColor } : zone,
-        ),
-      }))
-    } else {
-      // Criar nova zona
-      const newZoneId = `zone-${Date.now()}`
-
-      setMapConfig((prev) => ({
-        ...prev,
-        zones: [
-          ...prev.zones,
-          {
-            id: newZoneId,
-            name: newZoneName,
-            color: selectedZoneColor,
-            position: { top: "30%", left: "30%", width: "20%", height: "20%" },
-          },
-        ],
-      }))
-    }
-
-    setShowZoneNameModal(false)
+const handleSaveZone = () => {
+  if (!newZoneName.trim()) {
+    Alert.alert("Erro", "O nome da zona não pode estar vazio.")
+    return
   }
+
+  if (editingZoneId) {
+    // Editar zona existente
+    setMapConfig((prev) => ({
+      ...prev,
+      zones: prev.zones.map((zone) =>
+        zone.id === editingZoneId ? { ...zone, name: newZoneName, color: selectedZoneColor } : zone,
+      ),
+    }))
+  } else {
+    // Criar nova zona com ID mais amigável
+    // Encontre a próxima letra disponível para ID
+    const existingIds = mapConfig.zones.map(zone => zone.id);
+    let newId = '';
+    
+    // Tente encontrar a próxima letra disponível (após D)
+    for (let charCode = 'E'.charCodeAt(0); charCode <= 'Z'.charCodeAt(0); charCode++) {
+      const nextId = String.fromCharCode(charCode);
+      if (!existingIds.includes(nextId)) {
+        newId = nextId;
+        break;
+      }
+    }
+    
+    // Se todas as letras estiverem usadas, use um número
+    if (!newId) {
+      let counter = 1;
+      while (!newId) {
+        const nextId = `${counter}`;
+        if (!existingIds.includes(nextId)) {
+          newId = nextId;
+        }
+        counter++;
+      }
+    }
+
+    setMapConfig((prev) => ({
+      ...prev,
+      zones: [
+        ...prev.zones,
+        {
+          id: newId, // Usando o novo ID mais amigável
+          name: newZoneName,
+          color: selectedZoneColor,
+          position: { top: "30%", left: "30%", width: "20%", height: "20%" },
+        },
+      ],
+    }))
+  }
+
+  setShowZoneNameModal(false)
+}
 
   const getRandomColor = () => {
     // Using imported generateRandomColor function from MapCalculations
