@@ -3,6 +3,7 @@ export interface Motorcycle {
   model: string
   licensePlate: string
   year: number
+  zoneId?: string
   color: string
   status: "in-yard" | "out" | "maintenance"
   beaconId: string | null

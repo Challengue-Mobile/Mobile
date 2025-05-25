@@ -1,32 +1,84 @@
 "use client"
 
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
-import { Link, Href } from "expo-router" // 1. Importe o tipo Href
+import React from "react"
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  StyleProp,
+  ViewStyle,
+} from "react-native"
+import { Link, LinkProps } from "expo-router"
 import { ChevronRight } from "lucide-react-native"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useLocalization } from "@/contexts/LocalizationContext"
 
-interface SectionHeaderProps {
+export interface SectionHeaderProps {
   title: string
-  linkTo?: Href // 2. Use Href em vez de string para linkTo
+  // para o botão "Ver todas"
+  linkTo?: LinkProps["href"]
+  linkText?: string
+  // para o botão "Limpar"
+  clearText?: string
+  onClearPress?: () => void
+  // se quiser customizar estilo externo
+  style?: StyleProp<ViewStyle>
 }
 
-export function SectionHeader({ title, linkTo }: SectionHeaderProps) {
+export function SectionHeader({
+  title,
+  linkTo,
+  linkText,
+  clearText,
+  onClearPress,
+  style,
+}: SectionHeaderProps) {
   const { theme } = useTheme()
   const { t } = useLocalization()
 
   return (
-    <View style={styles.container}>
-      <Text style={[styles.title, { color: theme.colors.gray[800] }]}>{title}</Text>
-      {linkTo && (
-        // 3. Agora 'linkTo' tem o tipo correto esperado por 'href'
-        <Link href={linkTo} asChild>
-          <TouchableOpacity style={styles.viewAllButton}>
-            <Text style={[styles.viewAllText, { color: theme.colors.primary[500] }]}>{t("home.viewAll")}</Text>
-            <ChevronRight size={16} color={theme.colors.primary[500]} />
+    <View style={[styles.container, style]}>
+      <Text style={[styles.title, { color: theme.colors.gray[800] }]}>
+        {title}
+      </Text>
+
+      <View style={styles.actions}>
+        {/* botão "Limpar" (quando passar clearText) */}
+        {clearText && onClearPress && (
+          <TouchableOpacity
+            onPress={onClearPress}
+            style={styles.clearButton}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text
+              style={[
+                styles.clearText,
+                { color: theme.colors.error ? theme.colors.error[500] : "#ef4444" },
+              ]}
+            >
+              {clearText}
+            </Text>
           </TouchableOpacity>
-        </Link>
-      )}
+        )}
+
+        {/* botão "Ver todas" (quando passar linkTo) */}
+        {linkTo && (
+          <Link href={linkTo} asChild>
+            <TouchableOpacity style={styles.viewAllButton}>
+              <Text
+                style={[
+                  styles.viewAllText,
+                  { color: theme.colors.primary[500] },
+                ]}
+              >
+                {linkText ?? t("common.viewAll")}
+              </Text>
+              <ChevronRight size={16} color={theme.colors.primary[500]} />
+            </TouchableOpacity>
+          </Link>
+        )}
+      </View>
     </View>
   )
 }
@@ -36,12 +88,24 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
     marginTop: 16,
+    marginBottom: 8,
+    paddingHorizontal: 4,
   },
   title: {
     fontFamily: "Poppins-SemiBold",
-    fontSize: 16,
+    fontSize: 18,
+  },
+  actions: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  clearButton: {
+    marginRight: 12,
+  },
+  clearText: {
+    fontFamily: "Poppins-Medium",
+    fontSize: 14,
   },
   viewAllButton: {
     flexDirection: "row",
@@ -49,7 +113,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     fontFamily: "Poppins-Medium",
-    fontSize: 12,
+    fontSize: 14,
     marginRight: 4,
   },
 })

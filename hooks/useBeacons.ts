@@ -1,77 +1,84 @@
-import { useState, useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Beacon } from '@/types';
+// hooks/useBeacons.ts
+import { useState, useEffect } from 'react'
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import type { Beacon } from '@/types'
+
+const STORAGE_KEY = 'beacons'
 
 export function useBeacons() {
-  const [beacons, setBeacons] = useState<Beacon[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [beacons, setBeacons] = useState<Beacon[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load beacons from AsyncStorage on hook initialization
+  // 1) Carrega tudo na inicialização
   useEffect(() => {
-    loadBeacons();
-  }, []);
+    loadBeacons()
+  }, [])
 
-  const loadBeacons = async () => {
+  // 2) Lê os beacons do AsyncStorage
+  async function loadBeacons() {
     try {
-      setLoading(true);
-      const storedBeacons = await AsyncStorage.getItem('beacons');
-      
-      if (storedBeacons) {
-        setBeacons(JSON.parse(storedBeacons));
-      }
-      
-      setError(null);
-    } catch (err) {
-      setError('Failed to load beacons');
-      console.error('Error loading beacons:', err);
+      setLoading(true)
+      const raw = await AsyncStorage.getItem(STORAGE_KEY)
+      const list: Beacon[] = raw ? JSON.parse(raw) : []
+      setBeacons(list)
+      setError(null)
+    } catch (e) {
+      console.error('Error loading beacons:', e)
+      setError('Failed to load beacons')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const saveBeacon = async (beacon: Beacon) => {
+  // 3) Salva ou atualiza um beacon
+  async function saveBeacon(beacon: Beacon) {
     try {
-      setLoading(true);
-      
-      const updatedBeacons = [...beacons];
-      const index = updatedBeacons.findIndex(b => b.id === beacon.id);
-      
-      if (index >= 0) {
-        // Update existing beacon
-        updatedBeacons[index] = beacon;
+      setLoading(true)
+
+      // -- lê o estado mais recente do storage --
+      const raw = await AsyncStorage.getItem(STORAGE_KEY)
+      const list: Beacon[] = raw ? JSON.parse(raw) : []
+
+      const idx = list.findIndex((b) => b.id === beacon.id)
+      if (idx >= 0) {
+        // atualização
+        list[idx] = beacon
       } else {
-        // Add new beacon
-        updatedBeacons.push(beacon);
+        // inserção no topo (ou no fim, se preferir)
+        list.unshift(beacon)
       }
-      
-      await AsyncStorage.setItem('beacons', JSON.stringify(updatedBeacons));
-      setBeacons(updatedBeacons);
-      setError(null);
-    } catch (err) {
-      setError('Failed to save beacon');
-      console.error('Error saving beacon:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const deleteBeacon = async (id: string) => {
-    try {
-      setLoading(true);
-      
-      const updatedBeacons = beacons.filter(b => b.id !== id);
-      
-      await AsyncStorage.setItem('beacons', JSON.stringify(updatedBeacons));
-      setBeacons(updatedBeacons);
-      setError(null);
-    } catch (err) {
-      setError('Failed to delete beacon');
-      console.error('Error deleting beacon:', err);
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(list))
+
+      // -- refaz o load para garantir tudo limpo --
+      setBeacons(list)
+      setError(null)
+    } catch (e) {
+      console.error('Error saving beacon:', e)
+      setError('Failed to save beacon')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
+
+  // 4) Deleta um beacon
+  async function deleteBeacon(id: string) {
+    try {
+      setLoading(true)
+      const raw = await AsyncStorage.getItem(STORAGE_KEY)
+      const list: Beacon[] = raw ? JSON.parse(raw) : []
+      const filtered = list.filter((b) => b.id !== id)
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(filtered))
+      setBeacons(filtered)
+      setError(null)
+    } catch (e) {
+      console.error('Error deleting beacon:', e)
+      setError('Failed to delete beacon')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return {
     beacons,
@@ -80,5 +87,5 @@ export function useBeacons() {
     loadBeacons,
     saveBeacon,
     deleteBeacon,
-  };
+  }
 }
