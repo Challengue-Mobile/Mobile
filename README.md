@@ -93,8 +93,6 @@ npm test
 | Felipe Melo de Sousa | RM556099 |
 | Robert Daniel da Silva Coimbra | RM555881 |
 
-> **Observação:** As imagens acima estão em baixa resolução apenas para referência; substitua pelos arquivos reais (`*.jpg` ou `*.png`) que você anexou na pasta `docs/screenshots/`.
-
 ---
 
 Feito com dedicação por estudantes de **Análise e Desenvolvimento de Sistemas – FIAP** para o **Challenge 2025**.
