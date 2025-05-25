@@ -93,13 +93,6 @@ npm test
 | Felipe Melo de Sousa | RM556099 |
 | Robert Daniel da Silva Coimbra | RM555881 |
 
-*(Adicione/edite conforme a composição real do grupo.)*
-
-## Créditos / licenças
-- Icons: [Lucide](https://lucide.dev) (MIT)  
-- Fontes: **Poppins** – Open Font License  
-- Este projeto é distribuído sob a licença **MIT**. Veja `LICENSE` para detalhes.
-
 ## Demonstrações
 
 <p align="center">
