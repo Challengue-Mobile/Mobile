@@ -93,16 +93,6 @@ npm test
 | Felipe Melo de Sousa | RM556099 |
 | Robert Daniel da Silva Coimbra | RM555881 |
 
-## Demonstrações
-
-<p align="center">
-  <img src="docs/screenshots/screenshot-mapping.jpg"   alt="Tela de Mapeamento"   width="45%"/>
-  <img src="docs/screenshots/screenshot-dashboard.jpg" alt="Dashboard / Início"  width="45%"/><br/>
-  <img src="docs/screenshots/screenshot-settings.jpg"  alt="Tela de Configurações" width="45%"/>
-  <img src="docs/screenshots/screenshot-motos.jpg"     alt="Gerenciar Motos"      width="45%"/><br/>
-  <img src="docs/screenshots/screenshot-beacons.jpg"   alt="Gerenciar Beacons"    width="45%"/>
-</p>
-
 > **Observação:** As imagens acima estão em baixa resolução apenas para referência; substitua pelos arquivos reais (`*.jpg` ou `*.png`) que você anexou na pasta `docs/screenshots/`.
 
 ---
