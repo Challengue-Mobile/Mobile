@@ -4,6 +4,8 @@ Sistema de gestão e rastreamento de **motos** por **beacons Bluetooth** desenvo
 
 > **Dica rápida:** use o aplicativo sempre no **modo escuro**; todos os layouts, cores e contrastes foram pensados para oferecer a melhor experiência (além de economizar bateria). 🌙
 
+> **Observação:** o aplicativo funciona apenas web.
+
 ## Índice
 1. [Visão geral](#visão-geral)  
 2. [Funcionalidades](#funcionalidades)  
@@ -11,9 +13,7 @@ Sistema de gestão e rastreamento de **motos** por **beacons Bluetooth** desenvo
 4. [Estrutura de pastas](#estrutura-de-pastas)  
 5. [Como executar](#como-executar)  
 6. [Roadmap de ideias futuras](#roadmap-de-ideias-futuras)  
-7. [Membros do projeto](#membros-do-projeto)  
-8. [Créditos / licenças](#créditos--licenças)  
-9. [Demonstrações](#demonstrações)  
+7. [Membros do projeto](#membros-do-projeto)   
 
 ---
 
