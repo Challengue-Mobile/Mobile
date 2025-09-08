@@ -1,0 +1,16 @@
+plugins {
+    // ... outros plugins existentes
+    id 'com.google.gms.google-services'
+}
+
+dependencies {
+    // ... outras dependências
+    
+    // Import the Firebase BoM
+    implementation platform('com.google.firebase:firebase-bom:33.7.0')
+    
+    // Add Firebase dependencies que você precisar
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-auth'
+    // Adicione outros serviços conforme necessário
+}
