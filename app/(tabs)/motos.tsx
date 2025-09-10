@@ -11,10 +11,14 @@ import type { Motorcycle } from "@/types"
 import { MotoFormModal } from "@/components/MotoFormModal"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useLocalization } from "@/contexts/LocalizationContext"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+
+const SEEDED_FLAG = "@navmotu:motoSeeded"
+const WHITE = "#FFFFFF"
 
 export default function MotosScreen() {
-  const { motorcycles: mockMotorcycles } = useMockData()
-  const { motorcycles, saveMotorcycle, deleteMotorcycle } = useMotorcycles()
+  const { mockMotorcycles } = useMockData() as { mockMotorcycles: Motorcycle[] }
+  const { motorcycles = [], loading, addMotorcycle, removeMotorcycle } = useMotorcycles()
   const { theme } = useTheme()
   const { t } = useLocalization()
 
@@ -23,13 +27,18 @@ export default function MotosScreen() {
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredMotorcycles, setFilteredMotorcycles] = useState<Motorcycle[]>([])
 
+  // Seed inicial idempotente
   useEffect(() => {
-    // Initialize with data if no motorcycles are saved yet
-    if (motorcycles.length === 0) {
-      mockMotorcycles.forEach((moto) => {
-        saveMotorcycle(moto)
-      })
+    const seed = async () => {
+      const seeded = await AsyncStorage.getItem(SEEDED_FLAG)
+      if (!seeded && (motorcycles?.length ?? 0) === 0 && (mockMotorcycles?.length ?? 0) > 0) {
+        for (const moto of mockMotorcycles) {
+          await Promise.resolve(addMotorcycle(moto))
+        }
+        await AsyncStorage.setItem(SEEDED_FLAG, "1")
+      }
     }
+    seed()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -37,43 +46,32 @@ export default function MotosScreen() {
     if (searchQuery.trim() === "") {
       setFilteredMotorcycles(motorcycles)
     } else {
-      const filtered = motorcycles.filter(
-        (moto) =>
-          moto.model.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          moto.licensePlate.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+      const q = searchQuery.toLowerCase()
+      const filtered = motorcycles.filter((m) => {
+        const model = m.model?.toLowerCase() ?? ""
+        // aceita licensePlate ou plate
+        const plate = (("licensePlate" in m ? (m as any).licensePlate : (m as any).plate) ?? "").toLowerCase()
+        return model.includes(q) || plate.includes(q)
+      })
       setFilteredMotorcycles(filtered)
     }
   }, [searchQuery, motorcycles])
 
-  const handleAddMoto = () => {
-    setEditingMoto(null)
-    setIsModalVisible(true)
-  }
-
-  const handleEditMoto = (moto: Motorcycle) => {
-    setEditingMoto(moto)
-    setIsModalVisible(true)
-  }
-
-  const handleSaveMoto = (moto: Motorcycle) => {
-    saveMotorcycle(moto)
-    setIsModalVisible(false)
-  }
-
-  const handleDeleteMoto = (id: string) => {
-    deleteMotorcycle(id)
-  }
+  const handleAddMoto = () => { setEditingMoto(null); setIsModalVisible(true) }
+  const handleEditMoto = (moto: Motorcycle) => { setEditingMoto(moto); setIsModalVisible(true) }
+  const handleSaveMoto = (moto: Motorcycle) => { addMotorcycle(moto); setIsModalVisible(false) }
+  const handleDeleteMoto = (id: string) => { removeMotorcycle(id) }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.gray[50] }]} edges={["top"]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.white, borderBottomColor: theme.colors.gray[200] }]}>
+      <View style={[styles.header, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.gray[200] }]}>
         <Text style={[styles.title, { color: theme.colors.gray[900] }]}>{t("motorcycles.title")}</Text>
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: theme.colors.primary[500] }]}
+          style={[styles.addButton, { backgroundColor: theme.colors.primary }]}
           onPress={handleAddMoto}
+          disabled={loading}
         >
-          <Plus size={20} color={theme.colors.white} />
+          <Plus size={20} color={WHITE} />
         </TouchableOpacity>
       </View>
 
@@ -81,7 +79,7 @@ export default function MotosScreen() {
         <View
           style={[
             styles.searchInputContainer,
-            { backgroundColor: theme.colors.white, borderColor: theme.colors.gray[200] },
+            { backgroundColor: theme.colors.background, borderColor: theme.colors.gray[200] },
           ]}
         >
           <Search size={20} color={theme.colors.gray[400]} style={styles.searchIcon} />
@@ -94,9 +92,9 @@ export default function MotosScreen() {
           />
         </View>
         <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: theme.colors.white, borderColor: theme.colors.gray[200] }]}
+          style={[styles.filterButton, { backgroundColor: theme.colors.background, borderColor: theme.colors.gray[200] }]}
         >
-          <Filter size={20} color={theme.colors.primary[500]} />
+          <Filter size={20} color={theme.colors.primary} />
         </TouchableOpacity>
       </View>
 
@@ -111,10 +109,11 @@ export default function MotosScreen() {
           <View style={styles.emptyContainer}>
             <Text style={[styles.emptyText, { color: theme.colors.gray[600] }]}>{t("motorcycles.empty")}</Text>
             <TouchableOpacity
-              style={[styles.emptyButton, { backgroundColor: theme.colors.primary[500] }]}
+              style={[styles.emptyButton, { backgroundColor: theme.colors.primary }]}
               onPress={handleAddMoto}
+              disabled={loading}
             >
-              <Text style={[styles.emptyButtonText, { color: theme.colors.white }]}>{t("motorcycles.add")}</Text>
+              <Text style={[styles.emptyButtonText, { color: WHITE }]}>{t("motorcycles.add")}</Text>
             </TouchableOpacity>
           </View>
         }
@@ -131,9 +130,7 @@ export default function MotosScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
   header: {
     padding: 16,
     borderBottomWidth: 1,
@@ -141,64 +138,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
-  title: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 20,
-  },
-  addButton: {
-    padding: 8,
-    borderRadius: 8,
-  },
-  searchContainer: {
-    flexDirection: "row",
-    padding: 16,
-    alignItems: "center",
-  },
+  title: { fontFamily: "Poppins-SemiBold", fontSize: 20 },
+  addButton: { padding: 8, borderRadius: 8 },
+  searchContainer: { flexDirection: "row", padding: 16, alignItems: "center" },
   searchInputContainer: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 8,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    height: 44,
+    flex: 1, flexDirection: "row", alignItems: "center",
+    borderRadius: 8, borderWidth: 1, paddingHorizontal: 12, height: 44,
   },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: "100%",
-    fontFamily: "Poppins-Regular",
-    fontSize: 14,
-  },
-  filterButton: {
-    marginLeft: 12,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  listContent: {
-    padding: 16,
-    paddingTop: 0,
-  },
-  emptyContainer: {
-    padding: 24,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  emptyText: {
-    fontFamily: "Poppins-Medium",
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  emptyButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  emptyButtonText: {
-    fontFamily: "Poppins-Medium",
-    fontSize: 14,
-  },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, height: "100%", fontFamily: "Poppins-Regular", fontSize: 14 },
+  filterButton: { marginLeft: 12, padding: 12, borderRadius: 8, borderWidth: 1 },
+  listContent: { padding: 16, paddingTop: 0 },
+  emptyContainer: { padding: 24, alignItems: "center", justifyContent: "center" },
+  emptyText: { fontFamily: "Poppins-Medium", fontSize: 16, marginBottom: 16 },
+  emptyButton: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 8 },
+  emptyButtonText: { fontFamily: "Poppins-Medium", fontSize: 14 },
 })

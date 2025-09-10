@@ -15,10 +15,25 @@ import {
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useTheme } from "@/contexts/ThemeContext";
-import { useLocalization } from "@/contexts/LocalizationContext";
+// import { useLocalization } from "@/contexts/LocalizationContext"; // removido: não usado
 import { useMockData } from "@/hooks/useMockData";
 import { ZoneCounter } from "@/components/ZoneCounter";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Tipos mínimos (ajuste para os tipos oficiais do seu projeto, se existir)
+type Beacon = {
+  id: string;
+  status?: "active" | "inactive" | string;
+};
+
+type Motorcycle = {
+  id: string;
+  model: string;
+  beaconId?: string | null;
+  zoneId?: string;
+  licensePlate?: string;
+  plate?: string;
+};
 
 // Interfaces
 interface Movement {
@@ -62,9 +77,14 @@ const getDefaultZones = (): Zone[] =>
   }));
 
 export default function MappingScreen() {
-  const { motorcycles, beacons } = useMockData();
+  // ✅ Corrigido: alias nos retornos do hook
+  const { mockMotorcycles: motorcycles, mockBeacons: beacons } = useMockData() as {
+    mockMotorcycles: Motorcycle[];
+    mockBeacons: Beacon[];
+  };
+
   const { theme } = useTheme();
-  const { t } = useLocalization();
+  // const { t } = useLocalization(); // removido: não usado (eslint)
 
   // Estados
   const [zones, setZones]                 = useState<Zone[]>([]);
@@ -120,22 +140,28 @@ export default function MappingScreen() {
 
   // Contagens
   const getMotorcyclesInZone = (zoneId: string) =>
-    motorcycles.filter(m => (m as any).zoneId === zoneId).length;
+    (motorcycles || []).filter((m: Motorcycle) => (m as Motorcycle).zoneId === zoneId).length;
 
   const getBeaconsInZone = (zoneId: string) =>
-    beacons.filter(b => {
-      const moto = motorcycles.find(m => m.beaconId === b.id);
-      return moto && (moto as any).zoneId === zoneId;
+    (beacons || []).filter((b: Beacon) => {
+      const moto = (motorcycles || []).find((m: Motorcycle) => m.beaconId === b.id);
+      return moto && (moto as Motorcycle).zoneId === zoneId;
     }).length;
 
-  const getZoneById = (zoneId: string) => zones.find(z => z.id === zoneId);
+  const getZoneById = (zoneId: string) => zones.find(z => z.id === zoneId)!;
 
   // Clique em zona
   const handleZoneClick = (zoneId: string) => {
     if (selectedZone && selectedZone !== zoneId) {
-      const from = getZoneById(selectedZone)!;
-      const to   = getZoneById(zoneId)!;
+      if (!motorcycles || motorcycles.length === 0) {
+        Alert.alert("Sem motos", "Não há motos para mover.");
+        return;
+      }
+
+      const from = getZoneById(selectedZone);
+      const to   = getZoneById(zoneId);
       const rand = motorcycles[Math.floor(Math.random() * motorcycles.length)];
+
       const mv: Movement = {
         id: `mov-${Date.now()}`,
         motoId: rand.id,
@@ -146,12 +172,14 @@ export default function MappingScreen() {
         timestamp: new Date(),
         beaconId: rand.beaconId ?? null,
       };
+
       setMovingMoto(rand.id);
       Animated.timing(animationRef, {
         toValue: 1, duration: 800, useNativeDriver: false
       }).start(() => {
         persistMovements([mv, ...movements]);
         setMovingMoto(null);
+        animationRef.setValue(0);
         Alert.alert("Moto Movida", `${rand.model} de ${from.name} → ${to.name}`);
       });
       setSelectedZone(null);
@@ -164,7 +192,7 @@ export default function MappingScreen() {
   // Render moto animada
   const renderMovingMoto = () => {
     if (!movingMoto || !selectedZone) return null;
-    const from = getZoneById(selectedZone)!;
+    const from = getZoneById(selectedZone);
     const left = animationRef.interpolate({
       inputRange: [0,1],
       outputRange: [from.width/2, from.width/2 + 30],
@@ -194,7 +222,7 @@ export default function MappingScreen() {
   };
   const openEditModal = () => {
     if (!selectedZone) return;
-    const z = getZoneById(selectedZone)!;
+    const z = getZoneById(selectedZone);
     setEditingId(z.id);
     setZoneName(z.name);
     setZoneModalVisible(true);
@@ -351,7 +379,7 @@ export default function MappingScreen() {
       {showDetails && selectedZone && (
         <View style={[styles.detailsPanel, { backgroundColor: "rgba(31,41,55,0.9)" }]}>
           <View style={styles.detailsHeader}>
-            <Text style={styles.detailsTitle}>{getZoneById(selectedZone)!.name}</Text>
+            <Text style={styles.detailsTitle}>{getZoneById(selectedZone).name}</Text>
             <TouchableOpacity onPress={() => setShowDetails(false)}>
               <Feather name="x" size={20} color="#fff"/>
             </TouchableOpacity>
@@ -407,10 +435,10 @@ export default function MappingScreen() {
         </Text>
         {selectedZone && (
           <Text style={styles.footerText}>
-            Zona selecionada: {getZoneById(selectedZone)!.name}
+            Zona selecionada: {getZoneById(selectedZone).name}
           </Text>
         )}
-        {beacons.some(b => b.status === "active") && (
+        {(beacons || []).some((b: Beacon) => b.status === "active") && (
           <View style={styles.beaconIndicator}>
             <Feather name="bluetooth" size={16} color="#3b82f6"/>
             <Text style={[styles.beaconText, { color: "#3b82f6" }]}>Beacon ativo</Text>

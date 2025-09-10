@@ -1,7 +1,7 @@
 import { Zone } from '../types';
 // Use a hardcoded color instead of relying on MapCalculations
 // import { generateRandomColor } from './MapCalculations';
-import { lightTheme } from '../../../constants/Themes';
+import { lightTheme } from '../../../../constants/Themes';
 
 /**
  * Cria uma nova zona com posição padrão

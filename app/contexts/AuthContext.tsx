@@ -1,103 +1,86 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { 
+import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
   signOut as firebaseSignOut,
-  User
-} from 'firebase/auth';
-import { auth } from '../config/firebase'; 
+  onAuthStateChanged,
+  type User,
+} from "firebase/auth"
+import { auth } from "../config/firebase"
 
 interface AuthContextType {
-  user: User | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  resetPassword: (email: string) => Promise<void>;
-  signOut: () => Promise<void>;
+  user: User | null
+  loading: boolean
+  signIn: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string) => Promise<void>
+  resetPassword: (email: string) => Promise<void>
+  signOut: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
-
-interface AuthProviderProps {
-  children: ReactNode;
+  const context = useContext(AuthContext)
+  if (!context) throw new Error("useAuth must be used within an AuthProvider")
+  return context
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(false);
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [user, setUser] = useState<User | null>(null)
+  const [loading, setLoading] = useState(true) // começa true até hidratar
+
+  // Hidrata o estado de auth do Firebase
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (u) => {
+      setUser(u ?? null)
+      setLoading(false)
+    })
+    return unsub
+  }, [])
 
   const signIn = async (email: string, password: string) => {
+    setLoading(true)
     try {
-      setLoading(true);
-      const result = await signInWithEmailAndPassword(auth, email, password);
-      setUser(result.user);
-    } catch (error) {
-      console.error('Error signing in:', error);
-      throw error;
+      const result = await signInWithEmailAndPassword(auth, email, password)
+      setUser(result.user)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const register = async (email: string, password: string) => {
+    setLoading(true)
     try {
-      setLoading(true);
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      setUser(result.user);
-    } catch (error) {
-      console.error('Error registering:', error);
-      throw error;
+      const result = await createUserWithEmailAndPassword(auth, email, password)
+      setUser(result.user)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const resetPassword = async (email: string) => {
+    setLoading(true)
     try {
-      setLoading(true);
-      await sendPasswordResetEmail(auth, email);
-    } catch (error) {
-      console.error('Error sending password reset email:', error);
-      throw error;
+      await sendPasswordResetEmail(auth, email)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const signOut = async () => {
+    setLoading(true)
     try {
-      setLoading(true);
-      await firebaseSignOut(auth);
-      setUser(null);
-    } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
+      await firebaseSignOut(auth)
+      setUser(null)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
-
-  const value = {
-    user,
-    loading,
-    signIn,
-    register,
-    resetPassword,
-    signOut,
-  };
+  }
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, loading, signIn, register, resetPassword, signOut }}>
       {children}
     </AuthContext.Provider>
-  );
-};
+  )
+}

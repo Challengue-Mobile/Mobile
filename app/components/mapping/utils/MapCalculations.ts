@@ -1,4 +1,4 @@
-import type { Theme } from '../../../constants/Themes';
+import type { Theme } from '../../../../constants/Themes';
 
 /**
  * Gera uma cor aleatória para zonas

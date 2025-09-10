@@ -1,34 +1,68 @@
 "use client"
 
 import type React from "react"
-import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, ActivityIndicator, ScrollView } from "react-native"
+import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Bluetooth, Save, Bell, Trash2, Moon, Languages, HelpCircle } from "lucide-react-native"
 
-// Importa os hooks de contexto
-import { useSettings, type LanguageCode } from "@/hooks/useSettings"
+import { useSettings } from "@/hooks/useSettings"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useLocalization } from "@/contexts/LocalizationContext"
-import { useNotifications } from "@/contexts/NotificationContext"
+import { useNotification } from "@/contexts/NotificationContext"
 import { useScan } from "@/contexts/ScanContext"
 import { useHistory } from "@/contexts/HistoryContext"
 import { SettingItem } from "@/components/SettingItem"
 
-// Constantes para os idiomas
+type LanguageCode = "pt-BR" | "en-US"
 const LANG_PT_BR: LanguageCode = "pt-BR"
 const LANG_EN_US: LanguageCode = "en-US"
 
-// Define o tipo do componente funcional
-const SettingsScreen: React.FC = () => {
-  // Usa os hooks de contexto
-  const { isLoading, clearAllData } = useSettings()
-  const { theme, isDarkMode, toggleDarkMode } = useTheme()
-  const { language, setLanguage, t } = useLocalization()
-  const { notificationsEnabled, toggleNotifications } = useNotifications()
-  const { autoScanEnabled, toggleAutoScan } = useScan()
-  const { saveHistoryEnabled, toggleSaveHistory, clearHistory } = useHistory()
+const WHITE = "#FFFFFF"
+const ERROR = "#EF4444"
 
-  // Função para confirmar e limpar os dados
+const SettingsScreen: React.FC = () => {
+  const { theme } = useTheme()
+  const { t, language, setLanguage } = useLocalization()
+
+  // useSettings: apenas settings + updateSetting
+  const { settings, updateSetting } = useSettings()
+
+  // NotificationContext pode ter nomes diferentes; tratamos ambos
+  const notif = useNotification() as any
+  const notificationsEnabled: boolean =
+    !!(notif?.notificationsEnabled ?? notif?.enabled ?? settings?.notifications ?? false)
+  const toggleNotifications = () => {
+    if (typeof notif?.toggleNotifications === "function") return notif.toggleNotifications()
+    if (typeof notif?.toggle === "function") return notif.toggle()
+    updateSetting("notifications", !notificationsEnabled)
+  }
+
+  // ScanContext com fallback
+  const scan = useScan() as any
+  const autoScanEnabled: boolean = !!(scan?.autoScanEnabled ?? scan?.enabled ?? (settings as any)?.autoScan ?? false)
+  const toggleAutoScan = () => {
+    if (typeof scan?.toggleAutoScan === "function") return scan.toggleAutoScan()
+    if (typeof scan?.toggle === "function") return scan.toggle()
+    updateSetting("autoScan", !autoScanEnabled)
+  }
+
+  // HistoryContext com fallback
+  const history = useHistory() as any
+  const saveHistoryEnabled: boolean =
+    !!(history?.saveHistoryEnabled ?? history?.enabled ?? (settings as any)?.saveHistory ?? false)
+  const toggleSaveHistory = () => {
+    if (typeof history?.toggleSaveHistory === "function") return history.toggleSaveHistory()
+    if (typeof history?.toggle === "function") return history.toggle()
+    updateSetting("saveHistory", !saveHistoryEnabled)
+  }
+  const clearHistory = async () => {
+    if (typeof history?.clearHistory === "function") await history.clearHistory()
+  }
+
+  // Dark mode controlado por settings
+  const isDarkMode: boolean = !!settings?.darkMode
+  const toggleDarkMode = () => updateSetting("darkMode", !isDarkMode)
+
   const handleClearData = () => {
     Alert.alert(
       t("settings.clearDataConfirmTitle"),
@@ -39,8 +73,12 @@ const SettingsScreen: React.FC = () => {
           text: t("settings.clearDataConfirmClear"),
           style: "destructive",
           onPress: async () => {
-            await clearHistory() // Limpa o histórico primeiro
-            clearAllData() // Depois limpa todos os outros dados
+            await clearHistory().catch(() => {})
+            // zera chaves conhecidas em settings
+            updateSetting("notifications", false)
+            updateSetting("darkMode", false)
+            updateSetting("autoScan", false)
+            updateSetting("saveHistory", false)
           },
         },
       ],
@@ -48,35 +86,31 @@ const SettingsScreen: React.FC = () => {
     )
   }
 
-  // Função para alternar o idioma
   const handleLanguageChange = () => {
-    const newLanguage = language === LANG_PT_BR ? LANG_EN_US : LANG_PT_BR
-    setLanguage(newLanguage)
+    const next = language === LANG_PT_BR ? LANG_EN_US : LANG_PT_BR
+    setLanguage(next)
   }
 
-  // Função para navegar ou mostrar ajuda
-  const handleHelpPress = () => {
-    Alert.alert(t("settings.help"), t("settings.helpAndSupport"))
-  }
+  // Caso algum provider esteja inicializando e exponha loading
+  const maybeLoading =
+    (notif?.loading ?? scan?.loading ?? history?.loading ?? false) as boolean
 
-  // Mostra um indicador de carregamento enquanto as configurações são carregadas
-  if (isLoading) {
+  if (maybeLoading) {
     return (
       <SafeAreaView style={[styles.loadingContainer, { backgroundColor: theme.colors.gray[50] }]}>
-        <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+        <ActivityIndicator size="large" color={theme.colors.primary} />
         <Text style={[styles.loadingText, { color: theme.colors.gray[600] }]}>{t("settings.loading")}</Text>
       </SafeAreaView>
     )
   }
 
-  // Renderiza a tela de configurações
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.gray[50] }]} edges={["top", "bottom"]}>
       <View
         style={[
           styles.header,
           {
-            backgroundColor: theme.colors.white,
+            backgroundColor: theme.colors.background,
             borderBottomColor: theme.colors.gray[200],
           },
         ]}
@@ -85,15 +119,15 @@ const SettingsScreen: React.FC = () => {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Seção: Preferências */}
-        <View style={[styles.section, { backgroundColor: theme.colors.white }]}>
+        {/* Preferências */}
+        <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
           <Text
             style={[
               styles.sectionTitle,
               {
                 color: theme.colors.gray[800],
                 borderBottomColor: theme.colors.gray[200],
-                backgroundColor: theme.colors.white,
+                backgroundColor: theme.colors.background,
               },
             ]}
           >
@@ -104,8 +138,8 @@ const SettingsScreen: React.FC = () => {
             <Switch
               value={isDarkMode}
               onValueChange={toggleDarkMode}
-              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[300] }}
-              thumbColor={isDarkMode ? theme.colors.primary[500] : theme.colors.gray[100]}
+              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary }}
+              thumbColor={isDarkMode ? theme.colors.primary : theme.colors.gray[100]}
             />
           </SettingItem>
 
@@ -113,29 +147,29 @@ const SettingsScreen: React.FC = () => {
             <Switch
               value={notificationsEnabled}
               onValueChange={toggleNotifications}
-              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[300] }}
-              thumbColor={notificationsEnabled ? theme.colors.primary[500] : theme.colors.gray[100]}
+              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary }}
+              thumbColor={notificationsEnabled ? theme.colors.primary : theme.colors.gray[100]}
             />
           </SettingItem>
 
           <SettingItem icon={Languages} label={t("settings.language")}>
             <TouchableOpacity onPress={handleLanguageChange}>
-              <Text style={[styles.languageText, { color: theme.colors.primary[500] }]}>
+              <Text style={[styles.languageText, { color: theme.colors.primary }]}>
                 {language === LANG_PT_BR ? t("settings.language.ptBR") : t("settings.language.enUS")}
               </Text>
             </TouchableOpacity>
           </SettingItem>
         </View>
 
-        {/* Seção: Configurações do Beacon */}
-        <View style={[styles.section, { backgroundColor: theme.colors.white }]}>
+        {/* Beacon */}
+        <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
           <Text
             style={[
               styles.sectionTitle,
               {
                 color: theme.colors.gray[800],
                 borderBottomColor: theme.colors.gray[200],
-                backgroundColor: theme.colors.white,
+                backgroundColor: theme.colors.background,
               },
             ]}
           >
@@ -146,8 +180,8 @@ const SettingsScreen: React.FC = () => {
             <Switch
               value={autoScanEnabled}
               onValueChange={toggleAutoScan}
-              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[300] }}
-              thumbColor={autoScanEnabled ? theme.colors.primary[500] : theme.colors.gray[100]}
+              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary }}
+              thumbColor={autoScanEnabled ? theme.colors.primary : theme.colors.gray[100]}
             />
           </SettingItem>
 
@@ -155,63 +189,58 @@ const SettingsScreen: React.FC = () => {
             <Switch
               value={saveHistoryEnabled}
               onValueChange={toggleSaveHistory}
-              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary[300] }}
-              thumbColor={saveHistoryEnabled ? theme.colors.primary[500] : theme.colors.gray[100]}
+              trackColor={{ false: theme.colors.gray[300], true: theme.colors.primary }}
+              thumbColor={saveHistoryEnabled ? theme.colors.primary : theme.colors.gray[100]}
             />
           </SettingItem>
         </View>
 
-        {/* Seção: Dados */}
-        <View style={[styles.section, { backgroundColor: theme.colors.white }]}>
+        {/* Dados */}
+        <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
           <Text
             style={[
               styles.sectionTitle,
               {
                 color: theme.colors.gray[800],
                 borderBottomColor: theme.colors.gray[200],
-                backgroundColor: theme.colors.white,
+                backgroundColor: theme.colors.background,
               },
             ]}
           >
             {t("settings.data")}
           </Text>
 
-          <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: theme.colors.error[500] }]}
-            onPress={handleClearData}
-          >
-            <Trash2 size={20} color={theme.colors.white} />
-            <Text style={[styles.clearButtonText, { color: theme.colors.white }]}>{t("settings.clearData")}</Text>
+          <TouchableOpacity style={[styles.clearButton, { backgroundColor: ERROR }]} onPress={handleClearData}>
+            <Trash2 size={20} color={WHITE} />
+            <Text style={[styles.clearButtonText, { color: WHITE }]}>{t("settings.clearData")}</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Seção: Ajuda */}
-        <View style={[styles.section, { backgroundColor: theme.colors.white }]}>
+        {/* Ajuda */}
+        <View style={[styles.section, { backgroundColor: theme.colors.background }]}>
           <Text
             style={[
               styles.sectionTitle,
               {
                 color: theme.colors.gray[800],
                 borderBottomColor: theme.colors.gray[200],
-                backgroundColor: theme.colors.white,
+                backgroundColor: theme.colors.background,
               },
             ]}
           >
             {t("settings.help")}
           </Text>
 
-          <TouchableOpacity
-            style={[styles.helpButton, { backgroundColor: theme.colors.white }]}
-            onPress={handleHelpPress}
-          >
-            <HelpCircle size={20} color={theme.colors.primary[500]} />
-            <Text style={[styles.helpButtonText, { color: theme.colors.primary[500] }]}>
+          <TouchableOpacity style={[styles.helpButton, { backgroundColor: theme.colors.background }]} onPress={() =>
+            Alert.alert(t("settings.help"), t("settings.helpAndSupport"))
+          }>
+            <HelpCircle size={20} color={theme.colors.primary} />
+            <Text style={[styles.helpButtonText, { color: theme.colors.primary }]}>
               {t("settings.helpAndSupport")}
             </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Informação da Versão */}
         <Text style={[styles.versionText, { color: theme.colors.gray[500] }]}>{t("settings.version")} 1.0.1</Text>
       </ScrollView>
     </SafeAreaView>
@@ -220,39 +249,19 @@ const SettingsScreen: React.FC = () => {
 
 export default SettingsScreen
 
-// Estilos
 const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  loadingText: {
-    marginTop: 10,
-    fontFamily: "Poppins-Regular",
-  },
-  container: {
-    flex: 1,
-  },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 10, fontFamily: "Poppins-Regular" },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     alignItems: "center",
   },
-  title: {
-    fontFamily: "Poppins-SemiBold",
-    fontSize: 20,
-  },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 32,
-  },
-  section: {
-    marginBottom: 24,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
+  title: { fontFamily: "Poppins-SemiBold", fontSize: 20 },
+  scrollContent: { padding: 16, paddingBottom: 32 },
+  section: { marginBottom: 24, borderRadius: 12, overflow: "hidden" },
   sectionTitle: {
     fontFamily: "Poppins-Medium",
     fontSize: 16,
@@ -266,32 +275,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 16,
     paddingHorizontal: 16,
+    borderRadius: 10,
   },
-  clearButtonText: {
-    fontFamily: "Poppins-Medium",
-    fontSize: 14,
-    marginLeft: 8,
-  },
-  languageText: {
-    fontFamily: "Poppins-Medium",
-    fontSize: 14,
-    paddingVertical: 4,
-  },
-  helpButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 16,
-  },
-  helpButtonText: {
-    fontFamily: "Poppins-Medium",
-    fontSize: 14,
-    marginLeft: 12,
-  },
-  versionText: {
-    fontFamily: "Poppins-Regular",
-    fontSize: 12,
-    textAlign: "center",
-    marginTop: 16,
-  },
+  clearButtonText: { fontFamily: "Poppins-Medium", fontSize: 14, marginLeft: 8 },
+  languageText: { fontFamily: "Poppins-Medium", fontSize: 14, paddingVertical: 4 },
+  helpButton: { flexDirection: "row", alignItems: "center", paddingVertical: 16, paddingHorizontal: 16 },
+  helpButtonText: { fontFamily: "Poppins-Medium", fontSize: 14, marginLeft: 12 },
+  versionText: { fontFamily: "Poppins-Regular", fontSize: 12, textAlign: "center", marginTop: 16 },
 })
