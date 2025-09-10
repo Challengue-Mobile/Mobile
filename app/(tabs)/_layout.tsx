@@ -1,76 +1,57 @@
 "use client"
 
-import { Tabs } from "expo-router"
-import { StyleSheet } from "react-native"
-import { Home, Map, Settings, ListPlus, Bluetooth } from "lucide-react-native"
-import { useSafeAreaInsets } from "react-native-safe-area-context"
-import { useTheme } from "@/contexts/ThemeContext"
-import { useLocalization } from "@/contexts/LocalizationContext"
+import { useEffect } from "react"
+import { Stack } from "expo-router"
+import { StatusBar } from "expo-status-bar"
+import { useFonts } from "expo-font"
+import { SplashScreen } from "expo-router"
 
-export default function TabsLayout() {
-  const insets = useSafeAreaInsets()
-  const { theme } = useTheme()
-  const { t } = useLocalization()
+import { AuthProvider } from "@/contexts/AuthContext"          // ROBERT <- use SEMPRE '@/'
+import { ThemeProvider } from "@/contexts/ThemeContext"
+import { LocalizationProvider } from "@/contexts/LocalizationContext"
+import { NotificationProvider } from "@/contexts/NotificationContext"
+import { ScanProvider } from "@/contexts/ScanContext"
+import { HistoryProvider } from "@/contexts/HistoryContext"
+import { useFrameworkReady } from "@/hooks/useFrameworkReady"
+
+SplashScreen.preventAutoHideAsync().catch(() => {})
+
+function RootLayoutContent() {
+  useFrameworkReady()
+  const [fontsLoaded, fontError] = useFonts({
+    "Poppins-Regular": require("../assets/fonts/Poppins-Regular.ttf"),
+    "Poppins-Medium": require("../assets/fonts/Poppins-Medium.ttf"),
+    "Poppins-SemiBold": require("../assets/fonts/Poppins-SemiBold.ttf"),
+    "Poppins-Bold": require("../assets/fonts/Poppins-Bold.ttf"),
+  })
+  useEffect(() => { if (fontsLoaded || fontError) SplashScreen.hideAsync().catch(() => {}) }, [fontsLoaded, fontError])
+  if (!fontsLoaded && !fontError) return null
 
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: theme.colors.primary[600],
-        tabBarInactiveTintColor: theme.colors.gray[400],
-        tabBarLabelStyle: styles.tabBarLabel,
-        headerShown: false,
-        tabBarStyle: {
-          height: 60 + insets.bottom,
-          paddingTop: 8,
-          paddingBottom: insets.bottom,
-          backgroundColor: theme.colors.white,
-          borderTopColor: theme.colors.gray[200],
-        },
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: t("tab.home"),
-          tabBarIcon: ({ color, size }) => <Home size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="mapping"
-        options={{
-          title: t("tab.mapping"),
-          tabBarIcon: ({ color, size }) => <Map size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="motos"
-        options={{
-          title: t("tab.motorcycles"),
-          tabBarIcon: ({ color, size }) => <ListPlus size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="beacons"
-        options={{
-          title: t("tab.beacons"),
-          tabBarIcon: ({ color, size }) => <Bluetooth size={size} color={color} />,
-        }}
-      />
-      <Tabs.Screen
-        name="settings"
-        options={{
-          title: t("tab.settings"),
-          tabBarIcon: ({ color, size }) => <Settings size={size} color={color} />,
-        }}
-      />
-    </Tabs>
+    <>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="not-found" options={{ title: "Página não encontrada" }} />
+      </Stack>
+      <StatusBar style="auto" />
+    </>
   )
 }
 
-const styles = StyleSheet.create({
-  tabBarLabel: {
-    fontFamily: "Poppins-Medium",
-    fontSize: 11,
-    marginBottom: 4,
-  },
-})
+export default function RootLayout() {
+  return (
+    <AuthProvider>                              {/* ROBERT NO <- no topo */}
+      <ThemeProvider>
+        <LocalizationProvider>
+          <NotificationProvider>
+            <ScanProvider>
+              <HistoryProvider>
+                <RootLayoutContent />
+              </HistoryProvider>
+            </ScanProvider>
+          </NotificationProvider>
+        </LocalizationProvider>
+      </ThemeProvider>
+    </AuthProvider>
+  )
+}

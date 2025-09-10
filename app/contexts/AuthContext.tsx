@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, type ReactNode } from "react"
+// app/contexts/AuthContext.tsx
+import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -7,9 +8,9 @@ import {
   onAuthStateChanged,
   type User,
 } from "firebase/auth"
-import { auth } from "../config/firebase"
+import { auth } from "@/config/firebase"
 
-interface AuthContextType {
+type AuthContextType = {
   user: User | null
   loading: boolean
   signIn: (email: string, password: string) => Promise<void>
@@ -28,9 +29,8 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true) // começa true até hidratar
+  const [loading, setLoading] = useState(true)
 
-  // Hidrata o estado de auth do Firebase
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => {
       setUser(u ?? null)
@@ -42,40 +42,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const signIn = async (email: string, password: string) => {
     setLoading(true)
     try {
-      const result = await signInWithEmailAndPassword(auth, email, password)
-      setUser(result.user)
-    } finally {
-      setLoading(false)
-    }
+      const res = await signInWithEmailAndPassword(auth, email, password)
+      setUser(res.user)
+    } finally { setLoading(false) }
   }
 
   const register = async (email: string, password: string) => {
     setLoading(true)
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password)
-      setUser(result.user)
-    } finally {
-      setLoading(false)
-    }
+      const res = await createUserWithEmailAndPassword(auth, email, password)
+      setUser(res.user)
+    } finally { setLoading(false) }
   }
 
   const resetPassword = async (email: string) => {
     setLoading(true)
-    try {
-      await sendPasswordResetEmail(auth, email)
-    } finally {
-      setLoading(false)
-    }
+    try { await sendPasswordResetEmail(auth, email) }
+    finally { setLoading(false) }
   }
 
   const signOut = async () => {
     setLoading(true)
-    try {
-      await firebaseSignOut(auth)
-      setUser(null)
-    } finally {
-      setLoading(false)
-    }
+    try { await firebaseSignOut(auth); setUser(null) }
+    finally { setLoading(false) }
   }
 
   return (
