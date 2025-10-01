@@ -3,7 +3,7 @@
 import type React from "react"
 import { View, Text, StyleSheet, Switch, TouchableOpacity, Alert, ScrollView, ActivityIndicator } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
-import { Bluetooth, Save, Bell, Trash2, Moon, Languages, HelpCircle } from "lucide-react-native"
+import { Bluetooth, Save, Bell, Trash2, Moon, Languages, HelpCircle, LogOut } from "lucide-react-native"
 
 import { useSettings } from "@/hooks/useSettings"
 import { useTheme } from "@/contexts/ThemeContext"
@@ -12,6 +12,8 @@ import { useNotification } from "@/contexts/NotificationContext"
 import { useScan } from "@/contexts/ScanContext"
 import { useHistory } from "@/contexts/HistoryContext"
 import { SettingItem } from "@/components/SettingItem"
+import { logout } from "../../lib/auth"
+import { useRouter } from "expo-router"
 
 type LanguageCode = "pt-BR" | "en-US"
 const LANG_PT_BR: LanguageCode = "pt-BR"
@@ -21,6 +23,7 @@ const WHITE = "#FFFFFF"
 const ERROR = "#EF4444"
 
 const SettingsScreen: React.FC = () => {
+  const router = useRouter()
   const { theme } = useTheme()
   const { t, language, setLanguage } = useLocalization()
 
@@ -89,6 +92,29 @@ const SettingsScreen: React.FC = () => {
   const handleLanguageChange = () => {
     const next = language === LANG_PT_BR ? LANG_EN_US : LANG_PT_BR
     setLanguage(next)
+  }
+
+  const handleLogout = () => {
+    Alert.alert(
+      "Sair",
+      "Tem certeza que deseja sair?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sair",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout()
+              router.replace('/(auth)/login')
+            } catch (error) {
+              console.error('Erro ao fazer logout:', error)
+            }
+          },
+        },
+      ],
+      { cancelable: true },
+    )
   }
 
   // Caso algum provider esteja inicializando e exponha loading
@@ -214,6 +240,11 @@ const SettingsScreen: React.FC = () => {
             <Trash2 size={20} color={WHITE} />
             <Text style={[styles.clearButtonText, { color: WHITE }]}>{t("settings.clearData")}</Text>
           </TouchableOpacity>
+
+          <TouchableOpacity style={[styles.logoutButton, { backgroundColor: "#ef4444" }]} onPress={handleLogout}>
+            <LogOut size={20} color={WHITE} />
+            <Text style={[styles.logoutButtonText, { color: WHITE }]}>Sair</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Ajuda */}
@@ -278,6 +309,16 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   clearButtonText: { fontFamily: "Poppins-Medium", fontSize: 14, marginLeft: 8 },
+  logoutButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  logoutButtonText: { fontFamily: "Poppins-Medium", fontSize: 14, marginLeft: 8 },
   languageText: { fontFamily: "Poppins-Medium", fontSize: 14, paddingVertical: 4 },
   helpButton: { flexDirection: "row", alignItems: "center", paddingVertical: 16, paddingHorizontal: 16 },
   helpButtonText: { fontFamily: "Poppins-Medium", fontSize: 14, marginLeft: 12 },

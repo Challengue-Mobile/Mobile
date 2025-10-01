@@ -30,7 +30,7 @@
     "expo-linking": "~7.0.5",
     "expo-notifications": "^0.29.14",
     "expo-router": "~4.0.21",
-    "expo-splash-screen": "^0.29.21",
+    "expo-splash-screen": "~0.29.24",
     "expo-status-bar": "~2.0.1",
     "expo-symbols": "^0.2.2",
     "expo-system-ui": "^4.0.7",
@@ -49,7 +49,8 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.19.13",
     "react-native-webview": "13.12.5",
-    "zod": "^4.1.5"
+    "zod": "^4.1.5",
+    "undefined": "expo-google-fonts/poppins"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
