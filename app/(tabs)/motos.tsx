@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput, ActivityIndicator, RefreshControl } from "react-native"
 import { SafeAreaView } from "react-native-safe-area-context"
 import { Plus, Search, Filter } from "lucide-react-native"
 import { MotoCard } from "@/components/MotoCard"
@@ -19,7 +19,7 @@ const WHITE = "#FFFFFF"
 
 export default function MotosScreen() {
   const { mockMotorcycles } = useMockData() as { mockMotorcycles: Motorcycle[] }
-  const { motorcycles = [], loading, saving, deleting, saveMotorcycle, deleteMotorcycle } = useMotorcycles()
+  const { motorcycles = [], loading, saving, deleting, saveMotorcycle, deleteMotorcycle, refetch } = useMotorcycles()
   const { theme } = useTheme()
   const { t } = useLocalization()
 
@@ -27,6 +27,7 @@ export default function MotosScreen() {
   const [editingMoto, setEditingMoto] = useState<Motorcycle | null>(null)
   const [searchQuery, setSearchQuery] = useState("")
   const [filteredMotorcycles, setFilteredMotorcycles] = useState<Motorcycle[]>([])
+  const [refreshing, setRefreshing] = useState(false)
 
   // Seed inicial idempotente
   useEffect(() => {
@@ -76,15 +77,31 @@ export default function MotosScreen() {
     }
   }
 
+  const handleRefresh = async () => {
+    setRefreshing(true)
+    try {
+      await refetch?.()
+    } catch (error) {
+      logError('MotosScreen - Refresh', error)
+    } finally {
+      setRefreshing(false)
+    }
+  }
+
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.gray[50] }]} edges={["top"]}>
-      <View style={[styles.header, { backgroundColor: theme.colors.background, borderBottomColor: theme.colors.gray[200] }]}>
-        <Text style={[styles.title, { color: theme.colors.gray[900] }]}>{t("motorcycles.title")}</Text>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]} edges={["top"]}>
+      <View style={[styles.header, { backgroundColor: theme.isDark ? theme.colors.gray[100] : theme.colors.white, borderBottomColor: theme.colors.gray[200] }]}>
+        <View style={styles.headerContent}>
+          <Text style={[styles.title, { color: theme.colors.text }]}>Motos no Pátio</Text>
+          <Text style={[styles.counter, { color: theme.colors.gray[600] }]}>
+            {motorcycles.length} {motorcycles.length === 1 ? 'moto' : 'motos'}
+          </Text>
+        </View>
         <TouchableOpacity
           style={[
             styles.addButton, 
             { 
-              backgroundColor: (loading || saving) ? theme.colors.gray[400] : theme.colors.primary 
+              backgroundColor: (loading || saving) ? theme.colors.gray[400] : theme.colors.primary[500]
             }
           ]}
           onPress={handleAddMoto}
@@ -102,28 +119,28 @@ export default function MotosScreen() {
         <View
           style={[
             styles.searchInputContainer,
-            { backgroundColor: theme.colors.background, borderColor: theme.colors.gray[200] },
+            { backgroundColor: theme.isDark ? theme.colors.gray[100] : theme.colors.white, borderColor: theme.colors.gray[200] },
           ]}
         >
           <Search size={20} color={theme.colors.gray[400]} style={styles.searchIcon} />
           <TextInput
-            style={[styles.searchInput, { color: theme.colors.gray[800] }]}
-            placeholder={t("motorcycles.searchPlaceholder")}
+            style={[styles.searchInput, { color: theme.colors.text }]}
+            placeholder="Buscar por placa ou modelo..."
             placeholderTextColor={theme.colors.gray[400]}
             value={searchQuery}
             onChangeText={setSearchQuery}
           />
         </View>
         <TouchableOpacity
-          style={[styles.filterButton, { backgroundColor: theme.colors.background, borderColor: theme.colors.gray[200] }]}
+          style={[styles.filterButton, { backgroundColor: theme.isDark ? theme.colors.gray[100] : theme.colors.white, borderColor: theme.colors.gray[200] }]}
         >
-          <Filter size={20} color={theme.colors.primary} />
+          <Filter size={20} color={theme.colors.primary[500]} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
           <Text style={[styles.loadingText, { color: theme.colors.gray[600] }]}>
             Carregando motos...
           </Text>
@@ -133,31 +150,49 @@ export default function MotosScreen() {
           data={filteredMotorcycles}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <MotoCard 
-              motorcycle={item} 
-              onEdit={() => handleEditMoto(item)} 
-              onDelete={() => handleDeleteMoto(item.id)}
-              isDeleting={deleting === item.id}
-            />
+            <TouchableOpacity
+              onPress={() => handleEditMoto(item)}
+              activeOpacity={0.7}
+            >
+              <MotoCard 
+                motorcycle={item} 
+                onEdit={() => handleEditMoto(item)} 
+                onDelete={() => handleDeleteMoto(item.id)}
+                isDeleting={deleting === item.id}
+              />
+            </TouchableOpacity>
           )}
           contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              colors={[theme.colors.primary[500]]}
+              tintColor={theme.colors.primary[500]}
+            />
+          }
+          showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={[styles.emptyText, { color: theme.colors.gray[600] }]}>{t("motorcycles.empty")}</Text>
+              <Text style={[styles.emptyText, { color: theme.colors.gray[600] }]}>
+                {searchQuery ? "Nenhuma moto encontrada" : "Nenhuma moto cadastrada"}
+              </Text>
               <TouchableOpacity
                 style={[
                   styles.emptyButton, 
                   { 
-                    backgroundColor: saving ? theme.colors.gray[400] : theme.colors.primary 
+                    backgroundColor: saving ? theme.colors.gray[400] : theme.colors.primary[500]
                   }
                 ]}
-                onPress={handleAddMoto}
+                onPress={searchQuery ? () => setSearchQuery("") : handleAddMoto}
                 disabled={saving}
               >
                 {saving ? (
                   <ActivityIndicator size="small" color={WHITE} />
                 ) : (
-                  <Text style={[styles.emptyButtonText, { color: WHITE }]}>{t("motorcycles.add")}</Text>
+                  <Text style={[styles.emptyButtonText, { color: WHITE }]}>
+                    {searchQuery ? "Limpar busca" : "Adicionar Moto"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -184,8 +219,12 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
   },
+  headerContent: {
+    flex: 1,
+  },
   title: { fontFamily: "Poppins-SemiBold", fontSize: 20 },
-  addButton: { padding: 8, borderRadius: 8 },
+  counter: { fontFamily: "Poppins-Regular", fontSize: 14, marginTop: 2 },
+  addButton: { padding: 12, borderRadius: 8 },
   searchContainer: { flexDirection: "row", padding: 16, alignItems: "center" },
   searchInputContainer: {
     flex: 1, flexDirection: "row", alignItems: "center",

@@ -9,14 +9,14 @@
 
 export const CONFIG = {
   // URL da sua API no Render
-  RENDER_API_URL: 'https://sua-api.onrender.com', // SUBSTITUA AQUI
+  RENDER_API_URL: 'https://mottooth-java.onrender.com', // API configurada
   
   // URLs para desenvolvimento local
   LOCAL_API_ANDROID: 'http://10.0.2.2:8080',
   LOCAL_API_IOS: 'http://localhost:8080',
   
   // Flag para forçar uso da API do Render
-  USE_RENDER_API: false, // Mude para true para usar sempre a API do Render
+  USE_RENDER_API: true, // Usando a API do Render
   
   // Configurações gerais
   API_TIMEOUT: 10000,

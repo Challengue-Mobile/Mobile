@@ -112,8 +112,7 @@ export const ZoneComponent: React.FC<ZoneComponentProps> = ({
           <TouchableOpacity 
             style={[styles.dragHandle, { backgroundColor: theme.colors.primary[700] }]}
             onPressIn={() => {
-              // Iniciar arrastar
-              console.log(`Iniciando arrasto da zona ${zone.id}`);
+              // TODO: Implementar funcionalidade de arrastar zona
             }}
           >
             <Feather name="move" size={14} color="#fff" />
@@ -123,8 +122,7 @@ export const ZoneComponent: React.FC<ZoneComponentProps> = ({
           <TouchableOpacity 
             style={[styles.resizeHandle, { backgroundColor: theme.colors.primary[700] }]}
             onPressIn={() => {
-              // Iniciar redimensionamento
-              console.log(`Iniciando redimensionamento da zona ${zone.id}`);
+              // TODO: Implementar funcionalidade de redimensionar zona
             }}
           >
             <Feather name="maximize-2" size={14} color="#fff" />

@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native"
 import type { Motorcycle } from "@/types"
 import { Trash2, Edit2, Bluetooth } from "lucide-react-native"
@@ -13,7 +14,7 @@ interface MotoCardProps {
   isDeleting?: boolean
 }
 
-export function MotoCard({ motorcycle, onEdit, onDelete, isDeleting = false }: MotoCardProps) {
+export const MotoCard = React.memo(({ motorcycle, onEdit, onDelete, isDeleting = false }: MotoCardProps) => {
   const { theme } = useTheme()
   const { t } = useLocalization()
 
@@ -195,4 +196,4 @@ const styles = StyleSheet.create({
   beaconText: { marginLeft: 4 },
   actions: { justifyContent: "center" },
   actionButton: { padding: 8, marginBottom: 8 },
-})
+}))

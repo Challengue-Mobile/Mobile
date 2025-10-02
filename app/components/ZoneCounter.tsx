@@ -11,7 +11,7 @@ interface ZoneCounterProps {
   backgroundColor?: string;
 }
 
-export const ZoneCounter: React.FC<ZoneCounterProps> = ({ 
+export const ZoneCounter = React.memo<ZoneCounterProps>(({ 
   count, 
   icon, 
   color, 
@@ -25,7 +25,7 @@ export const ZoneCounter: React.FC<ZoneCounterProps> = ({
       </View>
     </View>
   );
-};
+});
 
 const styles = StyleSheet.create({
   container: {

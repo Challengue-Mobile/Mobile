@@ -26,14 +26,14 @@ export interface SectionHeaderProps {
   style?: StyleProp<ViewStyle>
 }
 
-export function SectionHeader({
+export const SectionHeader = React.memo(({
   title,
   linkTo,
   linkText,
   clearText,
   onClearPress,
   style,
-}: SectionHeaderProps) {
+}: SectionHeaderProps) => {
   const { theme } = useTheme()
   const { t } = useLocalization()
 
@@ -81,7 +81,7 @@ export function SectionHeader({
       </View>
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {

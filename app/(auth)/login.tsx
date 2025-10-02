@@ -2,13 +2,14 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { login } from '../../lib/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { logError } from '../../lib/errorHandler';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function Login() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({ email: '', password: '' });
@@ -57,8 +58,7 @@ export default function Login() {
       setGeneralError('');
       
       try {
-        const result = await login(email, password);
-        console.log('Login ok:', result);
+        await signIn(email, password);
         
         // Limpar campos após sucesso
         setEmail('');
@@ -92,7 +92,7 @@ export default function Login() {
                   borderColor: theme.colors.gray[300],
                   color: theme.colors.text 
                 },
-                errors.email && { borderColor: theme.colors.error[500] }
+                errors.email ? { borderColor: theme.colors.error[500] } : null
               ]}
               placeholder="Email"
               placeholderTextColor={theme.colors.gray[500]}
@@ -113,7 +113,7 @@ export default function Login() {
                   borderColor: theme.colors.gray[300],
                   color: theme.colors.text 
                 },
-                errors.password && { borderColor: theme.colors.error[500] }
+                errors.password ? { borderColor: theme.colors.error[500] } : null
               ]}
               placeholder="Senha"
               placeholderTextColor={theme.colors.gray[500]}

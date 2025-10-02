@@ -1,7 +1,7 @@
 // app/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react"
 import AsyncStorage from '@react-native-async-storage/async-storage'
-import { login, register, logout, getCurrentUser } from '../../lib/auth'
+import { login, register as apiRegister, logout, getCurrentUser } from '../../lib/auth'
 
 type User = {
   id: number
@@ -94,18 +94,24 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const register = async (email: string, password: string) => {
     setLoading(true)
     try {
-      // Verificar se usuário já existe
+      // Tentar registro com API primeiro
+      const response = await apiRegister({ name: email.split('@')[0], email, password })
+      setUser(response.user)
+    } catch (apiError: any) {
+      console.warn('API não disponível, fazendo registro offline:', apiError.message)
+      
+      // Fallback: sistema offline usando AsyncStorage
       const storedUsers = await AsyncStorage.getItem('@users')
       const users = storedUsers ? JSON.parse(storedUsers) : []
       
       const existingUser = users.find((u: User) => u.email === email)
       if (existingUser) {
-        throw new Error('Usuário já existe com este email')
+        throw new Error('Usuário já existe com este email (modo offline)')
       }
 
-      // Criar novo usuário
+      // Criar novo usuário offline
       const newUser = {
-        id: Date.now().toString(),
+        id: Date.now(),
         email,
         password,
         name: email.split('@')[0] // usar parte do email como nome
@@ -117,8 +123,6 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       const { password: _, ...userWithoutPassword } = newUser
       setUser(userWithoutPassword)
       await AsyncStorage.setItem('@user', JSON.stringify(userWithoutPassword))
-    } catch (error) {
-      throw error
     } finally {
       setLoading(false)
     }

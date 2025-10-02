@@ -9,8 +9,6 @@ import { getApiUrl, CONFIG } from '../config/environment'
  */
 const API_URL = getApiUrl()
 
-console.log("🌐 Usando API_URL:", API_URL);
-
 const api = axios.create({
   baseURL: API_URL,
   headers: { "Content-Type": "application/json" },

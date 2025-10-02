@@ -16,7 +16,7 @@ export const useNotification = () => {
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const showNotification = (message: string) => {
-    console.log('Notification:', message);
+    // TODO: Implementar sistema de notificações toast
   };
 
   return (

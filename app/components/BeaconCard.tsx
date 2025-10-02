@@ -1,10 +1,11 @@
 "use client"
 
+import React from "react"
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native"
-import type { Beacon } from "@/types"
-import { Trash2, Edit2, Bike, Bluetooth } from "lucide-react-native"
-import { useTheme } from "@/contexts/ThemeContext"
-import { useLocalization } from "@/contexts/LocalizationContext"
+import type { Beacon } from "../../types"
+import { Trash2, Edit2, Bike, Bluetooth, Battery, Wifi, MapPin } from "lucide-react-native"
+import { useTheme } from "../contexts/ThemeContext"
+import { useLocalization } from "../contexts/LocalizationContext"
 
 interface BeaconCardProps {
   beacon: Beacon
@@ -13,8 +14,8 @@ interface BeaconCardProps {
   isDeleting?: boolean
 }
 
-export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: BeaconCardProps) {
-  const { theme } = useTheme()
+export const BeaconCard = React.memo(({ beacon, onEdit, onDelete, isDeleting = false }: BeaconCardProps) => {
+  const { theme, isDark } = useTheme()
   const { t } = useLocalization()
 
   const getStatusColor = (status: string) => {
@@ -33,14 +34,26 @@ export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: Bea
   const getStatusText = (status: string) => {
     switch (status) {
       case "active":
-        return t("beacons.status.active")
+        return "Ativo"
       case "inactive":
-        return t("beacons.status.inactive")
+        return "Inativo"
       case "offline":
-        return t("beacons.status.offline")
+        return "Offline"
       default:
-        return t("common.unknown")
+        return "Desconhecido"
     }
+  }
+
+  const getBatteryColor = (level: number) => {
+    if (level > 50) return theme.colors.success[500]
+    if (level > 20) return "#F59E0B" // warning
+    return theme.colors.error[500]
+  }
+
+  const getSignalColor = (strength: number) => {
+    if (strength > 70) return theme.colors.success[500]
+    if (strength > 40) return "#F59E0B" // warning
+    return theme.colors.error[500]
   }
 
   return (
@@ -48,7 +61,7 @@ export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: Bea
       style={[
         styles.container,
         {
-          backgroundColor: theme.colors.white,
+          backgroundColor: theme.isDark ? theme.colors.gray[100] : theme.colors.white,
           shadowColor: theme.colors.gray[900],
         },
       ]}
@@ -57,7 +70,9 @@ export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: Bea
         <View style={styles.header}>
           <View style={styles.titleContainer}>
             <Bluetooth size={18} color={getStatusColor(beacon.status)} style={styles.icon} />
-            <Text style={[styles.title, { color: theme.colors.gray[900] }]}>{beacon.id}</Text>
+            <Text style={[styles.title, { color: theme.colors.text }]}>
+              {beacon.id.length > 12 ? `${beacon.id.substring(0, 12)}...` : beacon.id}
+            </Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: getStatusColor(beacon.status) }]}>
             <Text style={[styles.statusText, { color: theme.colors.white }]}>{getStatusText(beacon.status)}</Text>
@@ -66,14 +81,21 @@ export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: Bea
 
         <View style={styles.detailsRow}>
           <View style={styles.detail}>
-            <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>{t("beacons.batteryLevel")}:</Text>
-            <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{beacon.batteryLevel}%</Text>
+            <Battery size={14} color={getBatteryColor(beacon.batteryLevel)} style={styles.detailIcon} />
+            <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{beacon.batteryLevel || 0}%</Text>
           </View>
 
           <View style={styles.detail}>
-            <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>{t("beacons.signalStrength")}:</Text>
-            <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{beacon.signalStrength}%</Text>
+            <Wifi size={14} color={getSignalColor(beacon.signalStrength)} style={styles.detailIcon} />
+            <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{beacon.signalStrength || 0}%</Text>
           </View>
+
+          {beacon.zone && (
+            <View style={styles.detail}>
+              <MapPin size={14} color={theme.colors.gray[500]} style={styles.detailIcon} />
+              <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{beacon.zone}</Text>
+            </View>
+          )}
         </View>
 
         <View style={styles.detailsRow}>
@@ -86,8 +108,8 @@ export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: Bea
             </View>
           ) : (
             <View style={styles.detail}>
-              <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>{t("motorcycles.model")}:</Text>
-              <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>{t("beacons.none")}</Text>
+              <Text style={[styles.detailLabel, { color: theme.colors.gray[600] }]}>Moto:</Text>
+              <Text style={[styles.detailValue, { color: theme.colors.gray[800] }]}>Não associado</Text>
             </View>
           )}
         </View>
@@ -128,7 +150,7 @@ export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: Bea
       )}
     </View>
   )
-}
+})
 
 const styles = StyleSheet.create({
   container: {
@@ -180,6 +202,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 8,
   },
+  detailIcon: {
+    marginRight: 4,
+  },
   detailLabel: {
     fontFamily: "Poppins-Regular",
     fontSize: 12,
@@ -204,4 +229,4 @@ const styles = StyleSheet.create({
     padding: 8,
     marginBottom: 8,
   },
-})
+}))

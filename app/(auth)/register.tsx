@@ -2,13 +2,14 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
-import { register } from '../../lib/auth';
+import { useAuth } from '../contexts/AuthContext';
 import { logError } from '../../lib/errorHandler';
 import { useTheme } from '../contexts/ThemeContext';
 
 export default function Register() {
   const router = useRouter();
   const { theme } = useTheme();
+  const { register: registerUser } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -25,8 +26,7 @@ export default function Register() {
     setGeneralError('');
 
     try {
-      const result = await register(name, email, password);
-      console.log('Cadastro ok:', result);
+      await registerUser(email, password);
       
       // Limpar campos após sucesso
       setName('');
