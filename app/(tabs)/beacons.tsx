@@ -7,6 +7,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   FlatList,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Plus } from "lucide-react-native";
@@ -18,11 +19,12 @@ import { useBeacons } from "@/hooks/useBeacons";
 import { BeaconCard } from "@/components/BeaconCard";
 import { BeaconFormModal } from "@/components/BeaconFormModal";
 import type { Beacon } from "@/types";
+import { logError } from "../../lib/errorHandler";
 
 export default function BeaconsScreen() {
   const { theme } = useTheme();
   const { t } = useLocalization();
-  const { beacons: storedBeacons, saveBeacon, deleteBeacon } = useBeacons();
+  const { beacons: storedBeacons, loading, saving, deleting, saveBeacon, deleteBeacon } = useBeacons();
 
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingBeacon, setEditingBeacon] = useState<Beacon | null>(null);
@@ -46,15 +48,23 @@ export default function BeaconsScreen() {
 
   // Aqui a mágica: se alterou o ID, primeiro removemos o antigo e só então salvamos o novo
   const handleSave = async (b: Beacon) => {
-    if (editingBeacon && editingBeacon.id !== b.id) {
-      await deleteBeacon(editingBeacon.id);
+    try {
+      if (editingBeacon && editingBeacon.id !== b.id) {
+        await deleteBeacon(editingBeacon.id);
+      }
+      await saveBeacon(b);
+      setIsModalVisible(false);
+    } catch (error) {
+      logError('BeaconsScreen - Save', error);
     }
-    await saveBeacon(b);
-    setIsModalVisible(false);
   };
 
-  const handleDelete = (id: string) => {
-    deleteBeacon(id);
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteBeacon(id);
+    } catch (error) {
+      logError('BeaconsScreen - Delete', error);
+    }
   };
 
   return (
@@ -76,41 +86,71 @@ export default function BeaconsScreen() {
           {t("beacons.title")}
         </Text>
         <TouchableOpacity
-          style={[styles.addButton, { backgroundColor: theme.colors.primary[500] }]}
+          style={[
+            styles.addButton, 
+            { 
+              backgroundColor: (loading || saving) ? theme.colors.gray[400] : theme.colors.primary[500] 
+            }
+          ]}
           onPress={handleAdd}
+          disabled={loading || saving}
         >
-          <Plus size={20} color={theme.colors.white} />
+          {saving ? (
+            <ActivityIndicator size="small" color={theme.colors.white} />
+          ) : (
+            <Plus size={20} color={theme.colors.white} />
+          )}
         </TouchableOpacity>
       </View>
 
       {/* LISTA DE BEACONS */}
-      <FlatList
-        data={storedBeacons}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <BeaconCard
-            beacon={item}
-            onEdit={() => handleEdit(item)}
-            onDelete={() => handleDelete(item.id)}
-          />
-        )}
-        contentContainerStyle={styles.listContent}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={[styles.emptyText, { color: theme.colors.gray[600] }]}>
-              {t("beacons.empty")}
-            </Text>
-            <TouchableOpacity
-              style={[styles.emptyButton, { backgroundColor: theme.colors.primary[500] }]}
-              onPress={handleAdd}
-            >
-              <Text style={[styles.emptyButtonText, { color: theme.colors.white }]}>
-                {t("beacons.add")}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary[500]} />
+          <Text style={[styles.loadingText, { color: theme.colors.gray[600] }]}>
+            Carregando beacons...
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={storedBeacons}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <BeaconCard
+              beacon={item}
+              onEdit={() => handleEdit(item)}
+              onDelete={() => handleDelete(item.id)}
+              isDeleting={deleting === item.id}
+            />
+          )}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={[styles.emptyText, { color: theme.colors.gray[600] }]}>
+                {t("beacons.empty")}
               </Text>
-            </TouchableOpacity>
-          </View>
-        }
-      />
+              <TouchableOpacity
+                style={[
+                  styles.emptyButton, 
+                  { 
+                    backgroundColor: saving ? theme.colors.gray[400] : theme.colors.primary[500] 
+                  }
+                ]}
+                onPress={handleAdd}
+                disabled={saving}
+              >
+                {saving ? (
+                  <ActivityIndicator size="small" color={theme.colors.white} />
+                ) : (
+                  <Text style={[styles.emptyButtonText, { color: theme.colors.white }]}>
+                    {t("beacons.add")}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          }
+        />
+      )}
 
       {/* MODAL DE CADASTRO/EDIÇÃO */}
       <BeaconFormModal
@@ -161,5 +201,16 @@ const styles = StyleSheet.create({
   emptyButtonText: {
     fontFamily: "Poppins-Medium",
     fontSize: 14,
+  },
+  loadingContainer: { 
+    flex: 1, 
+    justifyContent: "center", 
+    alignItems: "center",
+    paddingVertical: 40,
+  },
+  loadingText: { 
+    marginTop: 12, 
+    fontFamily: "Poppins-Regular", 
+    fontSize: 14 
   },
 });

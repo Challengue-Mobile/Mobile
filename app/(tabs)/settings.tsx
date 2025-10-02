@@ -24,7 +24,7 @@ const ERROR = "#EF4444"
 
 const SettingsScreen: React.FC = () => {
   const router = useRouter()
-  const { theme } = useTheme()
+  const { theme, isDark, toggleTheme } = useTheme()
   const { t, language, setLanguage } = useLocalization()
 
   // useSettings: apenas settings + updateSetting
@@ -62,9 +62,9 @@ const SettingsScreen: React.FC = () => {
     if (typeof history?.clearHistory === "function") await history.clearHistory()
   }
 
-  // Dark mode controlado por settings
-  const isDarkMode: boolean = !!settings?.darkMode
-  const toggleDarkMode = () => updateSetting("darkMode", !isDarkMode)
+  // Dark mode controlado por ThemeContext
+  const isDarkMode = isDark
+  const toggleDarkMode = toggleTheme
 
   const handleClearData = () => {
     Alert.alert(
@@ -77,9 +77,8 @@ const SettingsScreen: React.FC = () => {
           style: "destructive",
           onPress: async () => {
             await clearHistory().catch(() => {})
-            // zera chaves conhecidas em settings
+            // zera chaves conhecidas em settings (tema é preservado)
             updateSetting("notifications", false)
-            updateSetting("darkMode", false)
             updateSetting("autoScan", false)
             updateSetting("saveHistory", false)
           },

@@ -1,6 +1,6 @@
 "use client"
 
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native"
 import type { Beacon } from "@/types"
 import { Trash2, Edit2, Bike, Bluetooth } from "lucide-react-native"
 import { useTheme } from "@/contexts/ThemeContext"
@@ -10,9 +10,10 @@ interface BeaconCardProps {
   beacon: Beacon
   onEdit?: () => void
   onDelete?: () => void
+  isDeleting?: boolean
 }
 
-export function BeaconCard({ beacon, onEdit, onDelete }: BeaconCardProps) {
+export function BeaconCard({ beacon, onEdit, onDelete, isDeleting = false }: BeaconCardProps) {
   const { theme } = useTheme()
   const { t } = useLocalization()
 
@@ -95,14 +96,32 @@ export function BeaconCard({ beacon, onEdit, onDelete }: BeaconCardProps) {
       {(onEdit || onDelete) && (
         <View style={styles.actions}>
           {onEdit && (
-            <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
+            <TouchableOpacity 
+              style={[
+                styles.actionButton,
+                { opacity: isDeleting ? 0.5 : 1 }
+              ]} 
+              onPress={onEdit}
+              disabled={isDeleting}
+            >
               <Edit2 size={18} color={theme.colors.primary[500]} />
             </TouchableOpacity>
           )}
 
           {onDelete && (
-            <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
-              <Trash2 size={18} color={theme.colors.error[500]} />
+            <TouchableOpacity 
+              style={[
+                styles.actionButton,
+                { opacity: isDeleting ? 0.5 : 1 }
+              ]} 
+              onPress={onDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color={theme.colors.error[500]} />
+              ) : (
+                <Trash2 size={18} color={theme.colors.error[500]} />
+              )}
             </TouchableOpacity>
           )}
         </View>

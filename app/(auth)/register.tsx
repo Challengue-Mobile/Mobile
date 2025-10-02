@@ -3,9 +3,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { register } from '../../lib/auth';
+import { logError } from '../../lib/errorHandler';
+import { useTheme } from '../contexts/ThemeContext';
 
 export default function Register() {
   const router = useRouter();
+  const { theme } = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -35,6 +38,7 @@ export default function Register() {
       
       router.replace('/(tabs)');
     } catch (error) {
+      logError('RegisterScreen - Register', error);
       setGeneralError(error instanceof Error ? error.message : 'Erro ao fazer cadastro');
     } finally {
       setLoading(false);
@@ -42,23 +46,37 @@ export default function Register() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <View style={styles.content}>
-        <Text style={styles.title}>Cadastro</Text>
+        <Text style={[styles.title, { color: theme.colors.text }]}>Cadastro</Text>
         
         <View style={styles.form}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.colors.gray[100],
+                borderColor: theme.colors.gray[300],
+                color: theme.colors.text
+              }
+            ]}
             placeholder="Nome"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.gray[500]}
             value={name}
             onChangeText={setName}
           />
           
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.colors.gray[100],
+                borderColor: theme.colors.gray[300],
+                color: theme.colors.text
+              }
+            ]}
             placeholder="Email"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.gray[500]}
             keyboardType="email-address"
             autoCapitalize="none"
             value={email}
@@ -66,31 +84,42 @@ export default function Register() {
           />
           
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: theme.colors.gray[100],
+                borderColor: theme.colors.gray[300],
+                color: theme.colors.text
+              }
+            ]}
             placeholder="Senha"
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.gray[500]}
             secureTextEntry
             value={password}
             onChangeText={setPassword}
           />
           
           <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
+            style={[
+              styles.button,
+              { backgroundColor: theme.colors.primary[500] },
+              loading && styles.buttonDisabled
+            ]} 
             onPress={handleRegister}
             disabled={loading}
           >
             {loading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color={theme.colors.white} />
             ) : (
-              <Text style={styles.buttonText}>Cadastrar</Text>
+              <Text style={[styles.buttonText, { color: theme.colors.white }]}>Cadastrar</Text>
             )}
           </TouchableOpacity>
           
-          {generalError ? <Text style={styles.errorText}>{generalError}</Text> : null}
+          {generalError ? <Text style={[styles.errorText, { color: theme.colors.error[500] }]}>{generalError}</Text> : null}
         </View>
         
         <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
-          <Text style={styles.loginText}>Já tem conta? Faça login</Text>
+          <Text style={[styles.loginText, { color: theme.colors.gray[500] }]}>Já tem conta? Faça login</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -100,7 +129,6 @@ export default function Register() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0a0a0a',
   },
   content: {
     flex: 1,
@@ -110,12 +138,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 32,
     fontWeight: 'bold',
-    color: '#fff',
     textAlign: 'center',
     marginBottom: 48,
   },
   loginText: {
-    color: '#999',
     fontSize: 14,
     textAlign: 'center',
   },
@@ -124,24 +150,19 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   input: {
-    backgroundColor: '#1a1a1a',
     borderWidth: 1,
-    borderColor: '#333',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    color: '#fff',
     fontSize: 16,
   },
   button: {
-    backgroundColor: '#3b82f6',
     borderRadius: 8,
     paddingVertical: 14,
     alignItems: 'center',
     marginTop: 8,
   },
   buttonText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
@@ -149,7 +170,6 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   errorText: {
-    color: '#ef4444',
     fontSize: 12,
     marginTop: 4,
     marginLeft: 4,

@@ -13,12 +13,14 @@ import {
   Platform,
   TouchableWithoutFeedback,
   Keyboard,
+  ActivityIndicator,
 } from "react-native"
 import { X } from "lucide-react-native"
 import type { Motorcycle } from "@/types"
 import { useBeacons } from "@/hooks/useBeacons"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useLocalization } from "@/contexts/LocalizationContext"
+import { logError } from "../../lib/errorHandler"
 
 interface MotoFormModalProps {
   visible: boolean
@@ -46,6 +48,15 @@ export function MotoFormModal({
     "in-yard"
   )
   const [beaconId, setBeaconId] = useState("")
+  
+  // validações e estados
+  const [errors, setErrors] = useState({ 
+    model: '', 
+    licensePlate: '', 
+    year: '',
+    color: '' 
+  })
+  const [loading, setLoading] = useState(false)
 
   // apenas beacons livres ou já associados à moto sendo editada
   const availableBeacons = beacons.filter(
@@ -69,22 +80,89 @@ export function MotoFormModal({
       setStatus("in-yard")
       setBeaconId("")
     }
+    // Limpar erros ao abrir modal
+    setErrors({ model: '', licensePlate: '', year: '', color: '' })
+    setLoading(false)
   }, [motorcycle, visible])
 
-  const handleSave = () => {
-    if (!model || !licensePlate) return
+  // Validações
+  const validateLicensePlate = (plate: string) => {
+    // Formatos aceitos: ABC-1234 ou ABC1D23 (Mercosul)
+    const oldFormat = /^[A-Z]{3}-[0-9]{4}$/
+    const mercosulFormat = /^[A-Z]{3}[0-9][A-Z][0-9]{2}$/
+    return oldFormat.test(plate) || mercosulFormat.test(plate)
+  }
 
-    const newMotorcycle: Motorcycle = {
-      id: motorcycle?.id || `moto-${Date.now()}`,
-      model,
-      licensePlate,
-      year: parseInt(year) || new Date().getFullYear(),
-      color,
-      status,
-      beaconId: beaconId || null,
+  const validateForm = () => {
+    const newErrors = { model: '', licensePlate: '', year: '', color: '' }
+    
+    if (!model.trim()) {
+      newErrors.model = 'Modelo é obrigatório'
+    } else if (model.trim().length < 2) {
+      newErrors.model = 'Modelo deve ter pelo menos 2 caracteres'
     }
+    
+    if (!licensePlate.trim()) {
+      newErrors.licensePlate = 'Placa é obrigatória'
+    } else if (!validateLicensePlate(licensePlate.toUpperCase())) {
+      newErrors.licensePlate = 'Formato inválido (ABC-1234 ou ABC1D23)'
+    }
+    
+    if (year && (parseInt(year) < 1900 || parseInt(year) > new Date().getFullYear() + 1)) {
+      newErrors.year = 'Ano inválido'
+    }
+    
+    setErrors(newErrors)
+    return !newErrors.model && !newErrors.licensePlate && !newErrors.year
+  }
 
-    onSave(newMotorcycle)
+  // Handlers para limpar erros
+  const handleModelChange = (text: string) => {
+    setModel(text)
+    if (errors.model) {
+      setErrors(prev => ({ ...prev, model: '' }))
+    }
+  }
+
+  const handleLicensePlateChange = (text: string) => {
+    setLicensePlate(text.toUpperCase())
+    if (errors.licensePlate) {
+      setErrors(prev => ({ ...prev, licensePlate: '' }))
+    }
+  }
+
+  const handleYearChange = (text: string) => {
+    setYear(text)
+    if (errors.year) {
+      setErrors(prev => ({ ...prev, year: '' }))
+    }
+  }
+
+  const handleSave = async () => {
+    if (!validateForm()) return
+    
+    setLoading(true)
+    
+    try {
+      // Simular delay da API
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      const newMotorcycle: Motorcycle = {
+        id: motorcycle?.id || `moto-${Date.now()}`,
+        model: model.trim(),
+        licensePlate: licensePlate.toUpperCase(),
+        year: parseInt(year) || new Date().getFullYear(),
+        color: color.trim(),
+        status,
+        beaconId: beaconId || null,
+      }
+
+      onSave(newMotorcycle)
+    } catch (error) {
+      logError('MotoForm - Save', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDismiss = () => {
@@ -139,15 +217,16 @@ export function MotoFormModal({
                   styles.input,
                   {
                     backgroundColor: theme.colors.gray[100],
-                    borderColor: theme.colors.gray[300],
+                    borderColor: errors.model ? '#ef4444' : theme.colors.gray[300],
                     color: theme.colors.gray[900],
                   },
                 ]}
                 value={model}
-                onChangeText={setModel}
+                onChangeText={handleModelChange}
                 placeholder="Ex: Honda CG 160"
                 placeholderTextColor={theme.colors.gray[400]}
               />
+              {errors.model ? <Text style={styles.errorText}>{errors.model}</Text> : null}
             </View>
 
             {/* Placa */}
@@ -160,16 +239,17 @@ export function MotoFormModal({
                   styles.input,
                   {
                     backgroundColor: theme.colors.gray[100],
-                    borderColor: theme.colors.gray[300],
+                    borderColor: errors.licensePlate ? '#ef4444' : theme.colors.gray[300],
                     color: theme.colors.gray[900],
                   },
                 ]}
                 value={licensePlate}
-                onChangeText={setLicensePlate}
+                onChangeText={handleLicensePlateChange}
                 placeholder="Ex: ABC-1234"
                 placeholderTextColor={theme.colors.gray[400]}
                 autoCapitalize="characters"
               />
+              {errors.licensePlate ? <Text style={styles.errorText}>{errors.licensePlate}</Text> : null}
             </View>
 
             {/* Ano & Cor */}
@@ -185,16 +265,17 @@ export function MotoFormModal({
                     styles.input,
                     {
                       backgroundColor: theme.colors.gray[100],
-                      borderColor: theme.colors.gray[300],
+                      borderColor: errors.year ? '#ef4444' : theme.colors.gray[300],
                       color: theme.colors.gray[900],
                     },
                   ]}
                   value={year}
-                  onChangeText={setYear}
+                  onChangeText={handleYearChange}
                   placeholder="Ex: 2023"
                   placeholderTextColor={theme.colors.gray[400]}
                   keyboardType="numeric"
                 />
+                {errors.year ? <Text style={styles.errorText}>{errors.year}</Text> : null}
               </View>
               <View style={[styles.formGroup, styles.halfWidth]}>
                 <Text
@@ -347,14 +428,26 @@ export function MotoFormModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.saveButton, { backgroundColor: theme.colors.primary[500] }]}
+              style={[
+                styles.saveButton, 
+                { 
+                  backgroundColor: (loading || !model.trim() || !licensePlate.trim()) 
+                    ? theme.colors.gray[400] 
+                    : theme.colors.primary[500] 
+                }
+              ]}
               onPress={handleSave}
+              disabled={loading || !model.trim() || !licensePlate.trim()}
             >
-              <Text
-                style={[styles.saveButtonText, { color: theme.colors.white }]}
-              >
-                {t("common.save")}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color={theme.colors.white} />
+              ) : (
+                <Text
+                  style={[styles.saveButtonText, { color: theme.colors.white }]}
+                >
+                  {t("common.save")}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -479,5 +572,12 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontFamily: "Poppins-Medium",
     fontSize: 14,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontFamily: "Poppins-Regular",
   },
 })

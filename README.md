@@ -31,6 +31,7 @@ Tudo isso em um app *mobile-first* (React Native + Expo Router) fácil de instal
 ## Funcionalidades
 | Tela                 | Descrição rápida                                                                 |
 |----------------------|----------------------------------------------------------------------------------|
+| **Sistema de Autenticação** | Login e cadastro com validação de formulários em tempo real, proteção de rotas autenticadas e logout funcional. |
 | **Mapa do Pátio**    | Grid responsivo com zonas coloridas, contadores de motos/beacons e visualização em tempo real. |
 | **Dashboard (Início)** | Indicadores de motos no pátio, beacons ativos, cards de resumo de zonas, listas de últimos cadastros. |
 | **Gerenciar Motos**  | CRUD completo, pesquisa por modelo/placa, filtro por status, associação direta a um beacon. |
@@ -43,8 +44,9 @@ Tudo isso em um app *mobile-first* (React Native + Expo Router) fácil de instal
 | Camada      | Stack                                                                 |
 |-------------|-----------------------------------------------------------------------|
 | **App**     | React Native + Expo SDK 50, TypeScript 5, Expo Router, React Navigation 6 |
+| **Autenticação** | Sistema de validações customizado, proteção de rotas, gerenciamento de tokens |
 | **BLE**     | `react-native-ble-plx`, adaptação para background mode no Android 13+ |
-| **Estado**  | Zustand, AsyncStorage (persistência offline)                          |
+| **Estado**  | Zustand, AsyncStorage para persistência (tokens, preferências, dados offline) |
 | **UI/UX**   | Tailwind-RN + custom theme, ícones `lucide-react-native`, animações Framer Motion |
 | **Qualidade** | ESLint + Prettier, Husky + lint-staged, Jest / React-Testing-Library |
 | **CI**      | GitHub Actions → EAS Build Preview em cada PR                         |

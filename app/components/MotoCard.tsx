@@ -1,6 +1,6 @@
 "use client"
 
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from "react-native"
 import type { Motorcycle } from "@/types"
 import { Trash2, Edit2, Bluetooth } from "lucide-react-native"
 import { useTheme } from "@/contexts/ThemeContext"
@@ -10,9 +10,10 @@ interface MotoCardProps {
   motorcycle: Motorcycle
   onEdit?: () => void
   onDelete?: () => void
+  isDeleting?: boolean
 }
 
-export function MotoCard({ motorcycle, onEdit, onDelete }: MotoCardProps) {
+export function MotoCard({ motorcycle, onEdit, onDelete, isDeleting = false }: MotoCardProps) {
   const { theme } = useTheme()
   const { t } = useLocalization()
 
@@ -132,13 +133,31 @@ export function MotoCard({ motorcycle, onEdit, onDelete }: MotoCardProps) {
       {(onEdit || onDelete) && (
         <View style={styles.actions}>
           {onEdit && (
-            <TouchableOpacity style={styles.actionButton} onPress={onEdit}>
+            <TouchableOpacity 
+              style={[
+                styles.actionButton,
+                { opacity: isDeleting ? 0.5 : 1 }
+              ]} 
+              onPress={onEdit}
+              disabled={isDeleting}
+            >
               <Edit2 size={18} color={theme.colors.primary} />
             </TouchableOpacity>
           )}
           {onDelete && (
-            <TouchableOpacity style={styles.actionButton} onPress={onDelete}>
-              <Trash2 size={18} color={TOKENS.error500} />
+            <TouchableOpacity 
+              style={[
+                styles.actionButton,
+                { opacity: isDeleting ? 0.5 : 1 }
+              ]} 
+              onPress={onDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color={TOKENS.error500} />
+              ) : (
+                <Trash2 size={18} color={TOKENS.error500} />
+              )}
             </TouchableOpacity>
           )}
         </View>

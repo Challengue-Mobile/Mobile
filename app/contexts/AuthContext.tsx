@@ -1,14 +1,13 @@
 // app/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, type ReactNode } from "react"
-import {
-  signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
-  sendPasswordResetEmail,
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  type User,
-} from "firebase/auth"
-import { auth } from "@/config/firebase"
+import AsyncStorage from '@react-native-async-storage/async-storage'
+import { login, register, logout, getCurrentUser } from '../../lib/auth'
+
+type User = {
+  id: number
+  email: string
+  name?: string
+}
 
 type AuthContextType = {
   user: User | null
@@ -32,39 +31,82 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
-      setUser(u ?? null)
-      setLoading(false)
-    })
-    return unsub
+    checkStoredUser()
   }, [])
+
+  const checkStoredUser = async () => {
+    try {
+      const storedUser = await AsyncStorage.getItem('@user')
+      if (storedUser) {
+        setUser(JSON.parse(storedUser))
+      }
+    } catch (error) {
+      console.error('Error checking stored user:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const signIn = async (email: string, password: string) => {
     setLoading(true)
     try {
-      const res = await signInWithEmailAndPassword(auth, email, password)
-      setUser(res.user)
-    } finally { setLoading(false) }
+      const response = await login(email, password)
+      setUser(response.user)
+    } catch (error) {
+      throw error
+    } finally {
+      setLoading(false)
+    }
   }
 
   const register = async (email: string, password: string) => {
     setLoading(true)
     try {
-      const res = await createUserWithEmailAndPassword(auth, email, password)
-      setUser(res.user)
-    } finally { setLoading(false) }
+      // Verificar se usuário já existe
+      const storedUsers = await AsyncStorage.getItem('@users')
+      const users = storedUsers ? JSON.parse(storedUsers) : []
+      
+      const existingUser = users.find((u: User) => u.email === email)
+      if (existingUser) {
+        throw new Error('Usuário já existe com este email')
+      }
+
+      // Criar novo usuário
+      const newUser = {
+        id: Date.now().toString(),
+        email,
+        password,
+        name: email.split('@')[0] // usar parte do email como nome
+      }
+
+      users.push(newUser)
+      await AsyncStorage.setItem('@users', JSON.stringify(users))
+
+      const { password: _, ...userWithoutPassword } = newUser
+      setUser(userWithoutPassword)
+      await AsyncStorage.setItem('@user', JSON.stringify(userWithoutPassword))
+    } catch (error) {
+      throw error
+    } finally {
+      setLoading(false)
+    }
   }
 
   const resetPassword = async (email: string) => {
-    setLoading(true)
-    try { await sendPasswordResetEmail(auth, email) }
-    finally { setLoading(false) }
+    // Simulação - em produção enviaria email real
+    throw new Error('Funcionalidade de reset de senha não implementada')
   }
 
   const signOut = async () => {
     setLoading(true)
-    try { await firebaseSignOut(auth); setUser(null) }
-    finally { setLoading(false) }
+    try {
+      await AsyncStorage.removeItem('@user')
+      setUser(null)
+    } catch (error) {
+      throw error
+    } finally {
+      setLoading(false)
+    }
   }
 
   return (

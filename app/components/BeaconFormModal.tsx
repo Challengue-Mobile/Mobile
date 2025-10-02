@@ -14,12 +14,14 @@ import {
   TouchableWithoutFeedback,
   Keyboard,
   Switch,
+  ActivityIndicator,
 } from "react-native"
 import { X } from "lucide-react-native"
 import type { Beacon } from "@/types"
 import { useMotorcycles } from "@/hooks/useMotorcycles"
 import { useTheme } from "@/contexts/ThemeContext"
 import { useLocalization } from "@/contexts/LocalizationContext"
+import { logError } from "../../lib/errorHandler"
 
 interface BeaconFormModalProps {
   visible: boolean
@@ -45,6 +47,14 @@ export function BeaconFormModal({
   const [batteryLevel, setBatteryLevel] = useState("100")
   const [signalStrength, setSignalStrength] = useState("100")
   const [motoId, setMotoId] = useState<string | null>(null)
+  
+  // validações e estados
+  const [errors, setErrors] = useState({ 
+    id: '', 
+    batteryLevel: '', 
+    signalStrength: '' 
+  })
+  const [loading, setLoading] = useState(false)
 
   // sempre mostrar todas as motos
   const availableMotorcycles = motorcycles
@@ -65,25 +75,87 @@ export function BeaconFormModal({
       setSignalStrength("100")
       setMotoId(null)
     }
+    // Limpar erros ao abrir modal
+    setErrors({ id: '', batteryLevel: '', signalStrength: '' })
+    setLoading(false)
   }, [beacon, visible])
 
-  const handleSave = () => {
-    if (!id.trim()) return
-
-    // garante status válido
-    type Status = "active" | "inactive" | "offline"
-    const isValidStatus = (v: string): v is Status =>
-      ["active", "inactive", "offline"].includes(v)
-    const finalStatus: Status = isValidStatus(status) ? status : "offline"
-
-    const newBeacon: Beacon = {
-      id: id.trim(),
-      status: finalStatus,
-      batteryLevel: parseInt(batteryLevel) || 100,
-      signalStrength: parseInt(signalStrength) || 100,
-      motoId,
+  // Validações
+  const validateForm = () => {
+    const newErrors = { id: '', batteryLevel: '', signalStrength: '' }
+    
+    if (!id.trim()) {
+      newErrors.id = 'ID é obrigatório'
+    } else if (id.trim().length < 3) {
+      newErrors.id = 'ID deve ter pelo menos 3 caracteres'
+    } else if (!/^[a-zA-Z0-9\-_]+$/.test(id.trim())) {
+      newErrors.id = 'ID deve conter apenas letras, números, - e _'
     }
-    onSave(newBeacon)
+    
+    const batteryNum = parseInt(batteryLevel)
+    if (isNaN(batteryNum) || batteryNum < 0 || batteryNum > 100) {
+      newErrors.batteryLevel = 'Bateria deve estar entre 0 e 100%'
+    }
+    
+    const signalNum = parseInt(signalStrength)
+    if (isNaN(signalNum) || signalNum < 0 || signalNum > 100) {
+      newErrors.signalStrength = 'Sinal deve estar entre 0 e 100%'
+    }
+    
+    setErrors(newErrors)
+    return !newErrors.id && !newErrors.batteryLevel && !newErrors.signalStrength
+  }
+
+  // Handlers para limpar erros
+  const handleIdChange = (text: string) => {
+    setId(text)
+    if (errors.id) {
+      setErrors(prev => ({ ...prev, id: '' }))
+    }
+  }
+
+  const handleBatteryChange = (text: string) => {
+    setBatteryLevel(text)
+    if (errors.batteryLevel) {
+      setErrors(prev => ({ ...prev, batteryLevel: '' }))
+    }
+  }
+
+  const handleSignalChange = (text: string) => {
+    setSignalStrength(text)
+    if (errors.signalStrength) {
+      setErrors(prev => ({ ...prev, signalStrength: '' }))
+    }
+  }
+
+  const handleSave = async () => {
+    if (!validateForm()) return
+    
+    setLoading(true)
+    
+    try {
+      // Simular delay da API
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      
+      // garante status válido
+      type Status = "active" | "inactive" | "offline"
+      const isValidStatus = (v: string): v is Status =>
+        ["active", "inactive", "offline"].includes(v)
+      const finalStatus: Status = isValidStatus(status) ? status : "offline"
+
+      const newBeacon: Beacon = {
+        id: id.trim(),
+        status: finalStatus,
+        batteryLevel: parseInt(batteryLevel) || 100,
+        signalStrength: parseInt(signalStrength) || 100,
+        motoId,
+      }
+      onSave(newBeacon)
+    } catch (error) {
+      logError('BeaconForm - Save', error)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const handleDismiss = () => {
@@ -138,17 +210,18 @@ export function BeaconFormModal({
                   styles.input,
                   {
                     backgroundColor: theme.colors.gray[100],
-                    borderColor: theme.colors.gray[300],
+                    borderColor: errors.id ? '#ef4444' : theme.colors.gray[300],
                     color: theme.colors.gray[900],
                   },
                 ]}
                 value={id}
-                onChangeText={setId}
+                onChangeText={handleIdChange}
                 placeholder="Ex: beacon-001"
                 placeholderTextColor={theme.colors.gray[400]}
                 // sempre editável
                 editable={true}
               />
+              {errors.id ? <Text style={styles.errorText}>{errors.id}</Text> : null}
             </View>
 
             {/* Status */}
@@ -199,16 +272,17 @@ export function BeaconFormModal({
                     styles.input,
                     {
                       backgroundColor: theme.colors.gray[100],
-                      borderColor: theme.colors.gray[300],
+                      borderColor: errors.batteryLevel ? '#ef4444' : theme.colors.gray[300],
                       color: theme.colors.gray[900],
                     },
                   ]}
                   value={batteryLevel}
-                  onChangeText={setBatteryLevel}
+                  onChangeText={handleBatteryChange}
                   placeholder="100"
                   placeholderTextColor={theme.colors.gray[400]}
                   keyboardType="numeric"
                 />
+                {errors.batteryLevel ? <Text style={styles.errorText}>{errors.batteryLevel}</Text> : null}
               </View>
 
               <View style={[styles.formGroup, styles.halfWidth]}>
@@ -220,16 +294,17 @@ export function BeaconFormModal({
                     styles.input,
                     {
                       backgroundColor: theme.colors.gray[100],
-                      borderColor: theme.colors.gray[300],
+                      borderColor: errors.signalStrength ? '#ef4444' : theme.colors.gray[300],
                       color: theme.colors.gray[900],
                     },
                   ]}
                   value={signalStrength}
-                  onChangeText={setSignalStrength}
+                  onChangeText={handleSignalChange}
                   placeholder="100"
                   placeholderTextColor={theme.colors.gray[400]}
                   keyboardType="numeric"
                 />
+                {errors.signalStrength ? <Text style={styles.errorText}>{errors.signalStrength}</Text> : null}
               </View>
             </View>
 
@@ -317,12 +392,24 @@ export function BeaconFormModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.saveButton, { backgroundColor: theme.colors.primary[500] }]}
+              style={[
+                styles.saveButton, 
+                { 
+                  backgroundColor: (loading || !id.trim()) 
+                    ? theme.colors.gray[400] 
+                    : theme.colors.primary[500] 
+                }
+              ]}
               onPress={handleSave}
+              disabled={loading || !id.trim()}
             >
-              <Text style={[styles.saveButtonText, { color: theme.colors.white }]}>
-                {t("common.save")}
-              </Text>
+              {loading ? (
+                <ActivityIndicator color={theme.colors.white} />
+              ) : (
+                <Text style={[styles.saveButtonText, { color: theme.colors.white }]}>
+                  {t("common.save")}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
@@ -434,5 +521,12 @@ const styles = StyleSheet.create({
   saveButtonText: {
     fontFamily: "Poppins-Medium",
     fontSize: 14,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
+    fontFamily: "Poppins-Regular",
   },
 })

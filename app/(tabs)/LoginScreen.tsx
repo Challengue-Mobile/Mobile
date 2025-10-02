@@ -1,105 +1,122 @@
-import { useState } from "react";
-import { View, TextInput, Text, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigation } from "@react-navigation/native";
-import { useAuth } from "@/contexts/AuthContext"
+// app/(tabs)/LoginScreen.tsx
+import React, { useState } from "react";
+import {
+  SafeAreaView,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+} from "react-native";
+import { useRouter } from "expo-router";
+import { useAuth } from "../contexts/AuthContext";
 
-const loginSchema = z.object({
-  email: z.string().email("Email inválido"),
-  password: z.string().min(6, "Mínimo 6 caracteres"),
-});
+export default function Login() {
+  const router = useRouter();
+  const { signIn } = useAuth();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [errors, setErrors]   = useState<{username?: string; password?: string}>({});
+  const [error, setError]     = useState("");
+  const [loading, setLoading] = useState(false);
 
-type FormData = z.infer<typeof loginSchema>;
+  const handleLogin = async () => {
+    setErrors({});
+    setError("");
 
-export default function LoginScreen() {
-  const navigation = useNavigation<any>();
-  const { signIn, resetPassword } = useAuth();
-  const { setValue, handleSubmit, formState: { errors, isSubmitting } } =
-    useForm<FormData>({ resolver: zodResolver(loginSchema) });
-  const [errMsg, setErrMsg] = useState("");
+    // Validações manuais
+    const v: typeof errors = {};
+    if (!username.trim()) v.username = "Usuário é obrigatório";
+    else if (username.trim().length < 3) v.username = "Usuário deve ter no mínimo 3 caracteres";
 
-  const onSubmit = async (data: FormData) => {
-    setErrMsg("");
+    if (!password) v.password = "Senha é obrigatória";
+    else if (password.length < 6) v.password = "Senha deve ter no mínimo 6 caracteres";
+
+    if (Object.keys(v).length) {
+      setErrors(v);
+      return;
+    }
+
+    setLoading(true);
     try {
-      await signIn(data.email, data.password);
-      // navegação pós-login: ex.: navigation.replace("Home") se quiser
+      await signIn(username, password);
+      router.replace("/(tabs)");
     } catch (e: any) {
-      setErrMsg(mapFirebaseError(e));
+      setError(e?.message || "Erro ao fazer login");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <View style={{ flex: 1, justifyContent: "center", padding: 20, gap: 12 }}>
-      <Text style={{ fontSize: 24, fontWeight: "700", marginBottom: 8 }}>Entrar</Text>
+    <SafeAreaView style={styles.safe}>
+      <View style={styles.container}>
+        <Text style={styles.title}>Mottooth</Text>
 
-      <TextInput
-        placeholder="Email"
-        autoCapitalize="none"
-        keyboardType="email-address"
-        onChangeText={(t) => setValue("email", t, { shouldValidate: true })}
-        style={{ borderWidth: 1, borderRadius: 8, padding: 12 }}
-      />
-      {!!errors.email && <Text style={{ color: "red" }}>{errors.email.message}</Text>}
+        <View style={styles.field}>
+          <TextInput
+            style={[styles.input, errors.username && styles.inputError]}
+            placeholder="Usuário"
+            placeholderTextColor="#9ca3af"
+            value={username}
+            onChangeText={setUsername}
+            autoCapitalize="none"
+          />
+          {!!errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
+        </View>
 
-      <TextInput
-        placeholder="Senha"
-        secureTextEntry
-        onChangeText={(t) => setValue("password", t, { shouldValidate: true })}
-        style={{ borderWidth: 1, borderRadius: 8, padding: 12 }}
-      />
-      {!!errors.password && <Text style={{ color: "red" }}>{errors.password.message}</Text>}
+        <View style={styles.field}>
+          <TextInput
+            style={[styles.input, errors.password && styles.inputError]}
+            placeholder="Senha"
+            placeholderTextColor="#9ca3af"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+          />
+          {!!errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+        </View>
 
-      {!!errMsg && <Text style={{ color: "red" }}>{errMsg}</Text>}
+        {!!error && <Text style={styles.errorTextCenter}>{error}</Text>}
 
-      <TouchableOpacity
-        disabled={isSubmitting}
-        onPress={handleSubmit(onSubmit)}
-        style={{ backgroundColor: "#0ea5e9", padding: 14, borderRadius: 10, alignItems: "center" }}
-      >
-        {isSubmitting ? <ActivityIndicator /> : <Text style={{ color: "#fff", fontWeight: "700" }}>Entrar</Text>}
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => navigation.navigate("Register")}>
-        <Text style={{ textAlign: "center", marginTop: 12 }}>Não tem conta? Cadastre-se</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => resetPasswordPrompt(resetPassword)}>
-        <Text style={{ color: "#0ea5e9", textAlign: "center", marginTop: 8 }}>Esqueci minha senha</Text>
-      </TouchableOpacity>
-    </View>
+        <TouchableOpacity
+          style={[styles.button, loading && { opacity: 0.5 }]}
+          onPress={handleLogin}
+          disabled={loading}
+          activeOpacity={0.8}
+        >
+          {loading ? <ActivityIndicator /> : <Text style={styles.buttonText}>Entrar</Text>}
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
   );
 }
 
-function resetPasswordPrompt(resetPassword: (email: string) => Promise<void>) {
-  Alert.prompt?.(
-    "Recuperar senha",
-    "Digite seu email",
-    [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Enviar",
-        onPress: async (email) => {
-          if (!email) return;
-          try {
-            await resetPassword(email);
-            Alert.alert("Pronto!", "Enviamos o link de redefinição.");
-          } catch {
-            Alert.alert("Erro", "Não foi possível enviar o email.");
-          }
-        },
-      },
-    ],
-    "plain-text"
-  );
-}
-
-function mapFirebaseError(e: any) {
-  const code = e?.code || "";
-  if (code.includes("auth/invalid-email")) return "Email inválido.";
-  if (code.includes("auth/user-not-found")) return "Usuário não encontrado.";
-  if (code.includes("auth/wrong-password")) return "Senha incorreta.";
-  if (code.includes("auth/too-many-requests")) return "Muitas tentativas. Tente mais tarde.";
-  return "Não foi possível entrar.";
-}
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: "#0a0a0a" },
+  container: { flex: 1, padding: 24, justifyContent: "center" },
+  title: { color: "#fff", fontSize: 32, fontWeight: "800", marginBottom: 32, textAlign: "center" },
+  field: { marginBottom: 16 },
+  input: {
+    backgroundColor: "#111827",
+    borderColor: "#374151",
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    color: "#fff",
+  },
+  inputError: { borderColor: "#ef4444" },
+  errorText: { color: "#ef4444", marginTop: 6, fontSize: 12 },
+  errorTextCenter: { color: "#ef4444", textAlign: "center", marginBottom: 8 },
+  button: {
+    backgroundColor: "#3b82f6",
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    marginTop: 8,
+  },
+  buttonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
+});

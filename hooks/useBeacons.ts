@@ -2,12 +2,16 @@
 import { useState, useEffect } from 'react'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import type { Beacon } from '@/types'
+import { showUserFriendlyError, logError } from '../lib/errorHandler'
+import * as beaconService from '../lib/beaconService'
 
 const STORAGE_KEY = 'beacons'
 
 export function useBeacons() {
   const [beacons, setBeacons] = useState<Beacon[]>([])
   const [loading, setLoading] = useState<boolean>(true)
+  const [saving, setSaving] = useState(false)
+  const [deleting, setDeleting] = useState<string | null>(null) // ID do beacon sendo deletado
   const [error, setError] = useState<string | null>(null)
 
   // 1) Carrega tudo na inicialização
@@ -15,17 +19,28 @@ export function useBeacons() {
     loadBeacons()
   }, [])
 
-  // 2) Lê os beacons do AsyncStorage
+  // 2) Carrega beacons da API com fallback para AsyncStorage
   async function loadBeacons() {
     try {
       setLoading(true)
-      const raw = await AsyncStorage.getItem(STORAGE_KEY)
-      const list: Beacon[] = raw ? JSON.parse(raw) : []
-      setBeacons(list)
       setError(null)
+      
+      // Tentar carregar da API primeiro
+      try {
+        const response = await beaconService.getBeacons()
+        setBeacons(response.content || response || [])
+        // Salvar cache local
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(response.content || response || []))
+      } catch (apiError) {
+        // Fallback para dados locais se API falhar
+        console.warn('API indisponível, usando dados locais:', apiError)
+        const raw = await AsyncStorage.getItem(STORAGE_KEY)
+        const list: Beacon[] = raw ? JSON.parse(raw) : []
+        setBeacons(list)
+      }
     } catch (e) {
-      console.error('Error loading beacons:', e)
-      setError('Failed to load beacons')
+      logError('Beacons - Load', e)
+      setError(showUserFriendlyError(e))
     } finally {
       setLoading(false)
     }
@@ -33,8 +48,12 @@ export function useBeacons() {
 
   // 3) Salva ou atualiza um beacon
   async function saveBeacon(beacon: Beacon) {
+    setSaving(true)
+    setError(null)
+    
     try {
-      setLoading(true)
+      // Simular delay da API
+      await new Promise(resolve => setTimeout(resolve, 1000))
 
       // -- lê o estado mais recente do storage --
       const raw = await AsyncStorage.getItem(STORAGE_KEY)
@@ -55,17 +74,24 @@ export function useBeacons() {
       setBeacons(list)
       setError(null)
     } catch (e) {
-      console.error('Error saving beacon:', e)
-      setError('Failed to save beacon')
+      logError('Beacons - Save', e)
+      const errorMessage = showUserFriendlyError(e)
+      setError(errorMessage)
+      throw new Error(errorMessage) // Re-throw com mensagem amigável
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
   // 4) Deleta um beacon
   async function deleteBeacon(id: string) {
+    setDeleting(id)
+    setError(null)
+    
     try {
-      setLoading(true)
+      // Simular delay da API
+      await new Promise(resolve => setTimeout(resolve, 800))
+      
       const raw = await AsyncStorage.getItem(STORAGE_KEY)
       const list: Beacon[] = raw ? JSON.parse(raw) : []
       const filtered = list.filter((b) => b.id !== id)
@@ -73,16 +99,20 @@ export function useBeacons() {
       setBeacons(filtered)
       setError(null)
     } catch (e) {
-      console.error('Error deleting beacon:', e)
-      setError('Failed to delete beacon')
+      logError('Beacons - Delete', e)
+      const errorMessage = showUserFriendlyError(e)
+      setError(errorMessage)
+      throw new Error(errorMessage) // Re-throw com mensagem amigável
     } finally {
-      setLoading(false)
+      setDeleting(null)
     }
   }
 
   return {
     beacons,
     loading,
+    saving,
+    deleting,
     error,
     loadBeacons,
     saveBeacon,
