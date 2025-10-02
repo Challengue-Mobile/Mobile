@@ -5,7 +5,7 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useRouter } from "expo-router";
-import { logout } from "../../lib/auth";
+import { logout } from "../lib/auth";
 
 export default function IndexPage() {
   const { theme } = useTheme();
@@ -76,4 +76,3 @@ export default function IndexPage() {
     </SafeAreaView>
   );
 }
-  

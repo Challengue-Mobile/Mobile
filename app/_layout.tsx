@@ -18,7 +18,7 @@ SplashScreen.preventAutoHideAsync().catch((err) => {
 })
 
 function RootLayoutContent() {
-  useFrameworkReady()
+  // useFrameworkReady() // Removido temporariamente
   const router = useRouter()
   const segments = useSegments()
   const { user, loading } = useAuth()
@@ -32,18 +32,24 @@ function RootLayoutContent() {
 
   // Redirecionar baseado no estado de autenticação
   useEffect(() => {
-    if (loading) return // Ainda carregando
+    // Aguardar que as fontes carreguem E a autenticação termine
+    if (loading || (!fontsLoaded && !fontError)) return
 
-    const inAuthGroup = segments.includes("(auth)")
+    const inAuthGroup = segments.some(segment => segment === "(auth)")
 
-    if (user && inAuthGroup) {
-      // Usuário logado mas está na tela de auth, redirecionar para tabs
-      router.replace("/(tabs)")
-    } else if (!user && !inAuthGroup) {
-      // Usuário não logado e não está na tela de auth, redirecionar para login
-      router.replace("/(auth)/login")
-    }
-  }, [user, loading, segments, router])
+    // Usar setTimeout para garantir que a navegação aconteça após o mount
+    const timer = setTimeout(() => {
+      if (user && inAuthGroup) {
+        // Usuário logado mas está na tela de auth, redirecionar para tabs
+        router.replace("/(tabs)")
+      } else if (!user && !inAuthGroup) {
+        // Usuário não logado e não está na tela de auth, redirecionar para login
+        router.replace("/(auth)/login")
+      }
+    }, 100)
+
+    return () => clearTimeout(timer)
+  }, [user, loading, segments, router, fontsLoaded, fontError])
 
   useEffect(() => {
     if (fontsLoaded || fontError) {
